@@ -6,8 +6,6 @@ This is a template. Create your own **hub** from it, put the files your teams sh
 
 The work is done by [touchmark](https://github.com/bedrock-python/touchmark) ([documentation](https://bedrock-python.github.io/touchmark/)). It only ever touches files it can prove it shipped: a file a team has changed stays theirs.
 
-*Waiting for touchmark's first release. Until v0.1.0 is out, the workflows pin touchmark to a placeholder marked `TODO(release)`, and a hub created from this template cannot run yet. Watch [touchmark's releases](https://github.com/bedrock-python/touchmark/releases).*
-
 ```
 your-org/engineering-assets                 this hub: packs/, hub.yml, targets.yml
         │  one pull request per repository on every change to a pack

@@ -60,8 +60,7 @@ jobs:
         with:
           fetch-depth: 0               # touchmark reads the hub's whole history
           persist-credentials: false
-      # TODO(release): pin the commit of the touchmark release tag.
-      - uses: bedrock-python/touchmark@0000000000000000000000000000000000000000 # v0.1.0
+      - uses: bedrock-python/touchmark@dd1e577da6af71181c2d7c38cc5fb1c8463d3451 # v0.1.0
         with:
           command: check
 
@@ -86,8 +85,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      # TODO(release): pin the commit of the touchmark release tag.
-      - uses: bedrock-python/touchmark@0000000000000000000000000000000000000000 # v0.1.0
+      - uses: bedrock-python/touchmark@dd1e577da6af71181c2d7c38cc5fb1c8463d3451 # v0.1.0
         with:
           command: plan
           # Without the read key (Dependabot's pull requests, and those
@@ -143,8 +141,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      # TODO(release): pin the commit of the touchmark release tag.
-      - uses: bedrock-python/touchmark@0000000000000000000000000000000000000000 # v0.1.0
+      - uses: bedrock-python/touchmark@dd1e577da6af71181c2d7c38cc5fb1c8463d3451 # v0.1.0
         with:
           command: distribute
         env:
@@ -174,8 +171,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      # TODO(release): pin the commit of the touchmark release tag.
-      - uses: bedrock-python/touchmark@0000000000000000000000000000000000000000 # v0.1.0
+      - uses: bedrock-python/touchmark@dd1e577da6af71181c2d7c38cc5fb1c8463d3451 # v0.1.0
         with:
           command: doctor
         env:
