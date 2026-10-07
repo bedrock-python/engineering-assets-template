@@ -1,0 +1,18 @@
+# Code owners of this hub on Gitea and Forgejo. A merge here turns into a pull
+# request in every target, so every change to these paths needs a review by
+# the hub's maintainers. Replace @acme/hub-maintainers with your team, and
+# turn on code owner approval in the default branch's protection rule.
+# Unlike GitHub and GitLab, each rule here is a Go regular expression matched
+# against the file's path; [.] matches a literal dot without the backslash
+# escaping this file needs otherwise.
+
+packs/.*              @acme/hub-maintainers
+hub[.]yml             @acme/hub-maintainers
+targets[.]yml         @acme/hub-maintainers
+[.]touchmark/.*       @acme/hub-maintainers
+[.]github/.*          @acme/hub-maintainers
+[.]gitlab-ci[.]yml    @acme/hub-maintainers
+[.]gitlab/.*          @acme/hub-maintainers
+[.]gitea/.*           @acme/hub-maintainers
+renovate[.]json       @acme/hub-maintainers
+scripts/.*            @acme/hub-maintainers

@@ -1,0 +1,55 @@
+# The weekly doctor of the hub on Gitea and Forgejo Actions: it checks the
+# write account against every target (access, token scopes, branch rules,
+# signing) and changes nothing. It is a workflow of its own because Gitea does
+# not tell a job which of several schedules started it. See
+# engineering-assets.yml for the secrets, the image and the runner label.
+name: engineering-assets-doctor
+
+on:
+  schedule:
+    - cron: "47 4 * * 1"
+  workflow_dispatch:
+
+env:
+  HUB: /tmp/touchmark-hub      # where the job clones the hub
+
+jobs:
+  doctor:
+    # A schedule always runs on the default branch.
+    if: >-
+      github.event_name == 'schedule' ||
+      github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    container:
+      # TODO(release): pin the digest of the touchmark release image.
+      image: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+    defaults:
+      run:
+        shell: sh
+    steps:
+      - name: Clone the hub with its whole history
+        env:
+          HUB_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf "$HUB"
+          git -c init.defaultBranch=touchmark init -q "$HUB"
+          cd "$HUB"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          set -- fetch --no-tags origin "+refs/heads/*:refs/remotes/origin/*" "+$GITHUB_REF:refs/touchmark/run"
+          if [ -n "$HUB_TOKEN" ]; then
+            # The job token reaches git through its environment, for this host only.
+            auth=$(printf 'touchmark:%s' "$HUB_TOKEN" | base64 | tr -d '\n')
+            GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="http.$GITHUB_SERVER_URL/.extraHeader" \
+              GIT_CONFIG_VALUE_0="Authorization: Basic $auth" git "$@"
+          else
+            git "$@"
+          fi
+          git checkout -q --detach "$GITHUB_SHA"
+      - name: touchmark doctor
+        run: cd "$HUB" && touchmark doctor --hub .
+        env:
+          TOUCHMARK_WRITE_TOKEN: ${{ secrets.TOUCHMARK_WRITE_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}

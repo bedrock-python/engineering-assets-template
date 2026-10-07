@@ -1,0 +1,97 @@
+# Settings of this engineering-assets hub, read by touchmark (format v1).
+# Every key but id is optional; an absent key takes the default shown in its
+# comment. The JSON Schema for editors: `touchmark schema hub`.
+version: 1
+
+# A short name for this hub: lowercase words joined by hyphens, 3 to 40
+# characters, such as acme-eng. Targets see it in the sync branch name
+# (touchmark/<id>). `touchmark check` rejects the placeholder until you set it.
+id: change-me
+
+# The account that opens pull requests in your targets. The CI's write key must
+# belong to it: distribute refuses to run without it, or when the key belongs
+# to another account. Commits are always authored by this account.
+#   GitHub: the writer App's bot, like acme-assets-write[bot]
+#   GitLab, Gitea, Forgejo: the writer's username, like touchmark-writer
+# writer: acme-assets-write[bot]
+
+# auto: sign commits where it costs nothing and where a target's rules require
+# signed commits; always: sign every commit, and stop where that is impossible.
+# sign: auto
+
+# With writer and sign at the top level, the hub delivers to the platform its
+# own CI runs on (the instance of GITHUB_SERVER_URL or CI_SERVER_URL; when you
+# run touchmark yourself, github.com or gitlab.com, from the hub's origin). For
+# a self-managed instance, or to deliver to several platforms, delete those
+# two lines and list the platforms instead. Each provider reads its keys from
+# TOUCHMARK_<ID>_READ_* and TOUCHMARK_<ID>_WRITE_* (the id uppercased, '-' as
+# '_'; a hub with one provider may drop the <ID>_), and targets.yml names its
+# repositories as <id>:<path>. A write key the workflows hand to touchmark
+# must also be tested by the probe in .github/workflows.
+#
+# providers:
+#   - id: gh
+#     type: github                 # github.com, GHE.com or GitHub Enterprise Server
+#     url: https://github.com
+#     writer: acme-assets-write[bot]
+#   - id: corp
+#     type: gitlab                 # gitlab.com or self-managed
+#     url: https://gitlab.example.com
+#     # ca_file: certs/corp-ca.pem # a private CA, as a file in this hub
+#     writer: touchmark-writer
+#   - id: tea
+#     type: gitea
+#     url: https://gitea.example.com
+#     writer: touchmark-writer
+#   - id: cb
+#     type: forgejo
+#     url: https://codeberg.org
+#     writer: acme-touchmark
+
+security:
+  # Where the write key lives:
+  #   platform: in this hub's CI, limited to the default branch; the probe job
+  #             checks it (GitHub and GitLab);
+  #   external: released by an external secret store through the CI's OIDC
+  #             token, for the default branch only;
+  #   none:     the risk is accepted; needs a reason. Gitea and Forgejo Actions
+  #             cannot limit a secret to one branch, so a hub that runs its CI
+  #             there needs external or none.
+  write_isolation: platform
+  # reason: "Gitea Actions: every branch is protected, contributors work from forks"
+  # A public hub skips targets that are not public and only counts them, since
+  # anyone can read its CI logs; deliver names them in the logs.
+  private_targets_in_public_hub: skip
+
+# Sync pull requests. After a pull request is opened, its title, draft state
+# and labels belong to people.
+# commit:
+#   message: "chore: sync engineering assets"
+# pr:
+#   title: "chore: sync engineering assets"
+#   labels: [engineering-assets]
+#   draft: false
+#   intro_file: .touchmark/pr-intro.md   # text that opens every description
+
+# Paths whose changes the pull request description highlights, in addition to
+# the built-in list (workflows, CI files, agent settings, CODEOWNERS, ...).
+# sensitive_paths:
+#   - deploy/**
+
+# What the packs under packs/ are for, and which packs each one needs: a target
+# that gets a pack gets its requires first. A renamed pack lists its old names
+# under formerly, so the files the old name shipped stay managed.
+packs:
+  agents:
+    description: AGENTS.md for every coding agent, a project profile to fill in, review and refactoring prompts
+  claude:
+    description: Claude Code instructions, skills (review-change, spec, new-branch, commit, pr), a reviewer subagent and settings that deny reading secrets
+    requires: [agents]
+  python-service:
+    description: Python, testing and database guidelines for services; Claude Code skills (app-start, app-stop, test, fmt) and a test-runner subagent
+    requires: [agents]
+  python-library:
+    description: Python, testing and public API guidelines for libraries
+    requires: [agents]
+  gitlab:
+    description: GitLab merge request and issue templates

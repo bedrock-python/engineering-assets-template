@@ -1,0 +1,20 @@
+# Code owners of this hub on GitLab. A merge here turns into a merge request in
+# every target, and .gitlab-ci.yml decides which jobs see the write token, so
+# every change to these paths needs a review by the hub's maintainers. Replace
+# @acme/hub-maintainers with your group, and turn on "Require approval from
+# code owners" for the default branch (Settings > Repository > Protected
+# branches; Premium and Ultimate). Later lines win: add owners for single
+# packs below the first block.
+
+/packs/            @acme/hub-maintainers
+/hub.yml           @acme/hub-maintainers
+/targets.yml       @acme/hub-maintainers
+/.touchmark/       @acme/hub-maintainers
+/.github/          @acme/hub-maintainers
+/.gitlab-ci.yml    @acme/hub-maintainers
+/.gitlab/          @acme/hub-maintainers
+/.gitea/           @acme/hub-maintainers
+/renovate.json     @acme/hub-maintainers
+/scripts/          @acme/hub-maintainers
+
+# /packs/python-service/  @acme/hub-maintainers @acme/backend-guild

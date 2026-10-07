@@ -1,0 +1,121 @@
+# The hub's CI on GitLab. touchmark checks every merge request to the hub and
+# delivers the packs from the default branch:
+#
+#   merge request to the hub           check, plan --strict, probe
+#   push to the default branch,        distribute
+#   a schedule, Run pipeline
+#   a schedule whose description       doctor (and on Run pipeline)
+#   contains "doctor"
+#
+# Variables (Settings > CI/CD > Variables; README, "Set up your hub"):
+#   TOUCHMARK_READ_TOKEN   masked, not protected: merge request pipelines need it
+#   TOUCHMARK_WRITE_TOKEN  protected, masked and hidden, environment scope
+#                          touchmark-distribute
+#
+# The probe runs in every merge request pipeline, in that environment, and
+# fails if it can see the write token: then any branch could read it.
+# Schedules: create two under Build > Pipeline schedules on the default
+# branch, one daily ("touchmark distribute") and one weekly ("touchmark
+# doctor"). They need no variables: with "Minimum role to use pipeline
+# variables" set to No one allowed, as the README asks, none can be passed.
+#
+# The image is pinned by digest on purpose: a variable that names it could be
+# overridden to leak the write token. Renovate keeps the tag and digest
+# current. If your runners cannot pull from ghcr.io, change the image in a
+# reviewed merge request.
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE =~ /^(push|schedule|web)$/
+
+default:
+  image:
+    # TODO(release): pin the digest of the touchmark release image.
+    name: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+    entrypoint: [""]
+
+variables:
+  GIT_DEPTH: "0"                       # touchmark reads the hub's whole history
+
+stages:
+  - check
+  - deliver
+
+check:
+  stage: check
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - touchmark check --hub .
+
+plan:
+  stage: check
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    # plan reads providers from the default branch's hub.yml, and a merge
+    # request pipeline fetches only its own branch.
+    - git fetch --no-tags origin "+refs/heads/$CI_DEFAULT_BRANCH:refs/remotes/origin/$CI_DEFAULT_BRANCH"
+    - touchmark plan --hub . --strict
+  artifacts:
+    when: always
+    expose_as: touchmark plan
+    paths:
+      - touchmark-report.md
+      - touchmark-report.json
+    expire_in: 30 days
+
+probe:
+  stage: check
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  # prepare: the job gets the environment's variables that this branch may
+  # see, without a deployment.
+  environment:
+    name: touchmark-distribute
+    action: prepare
+  variables:
+    GIT_STRATEGY: none                 # the probe reads no files
+  script:
+    - touchmark probe
+
+distribute:
+  stage: deliver
+  rules:
+    - if: $CI_PIPELINE_SCHEDULE_DESCRIPTION =~ /doctor/i
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE =~ /^(push|schedule|web)$/
+  environment:
+    name: touchmark-distribute
+  resource_group: touchmark-distribute
+  # The most GitLab.com's hosted runners allow; touchmark starts no target in
+  # the job's last 5 minutes, and the next run picks up what is left.
+  timeout: 3h
+  script:
+    - touchmark distribute --hub .
+  artifacts:
+    when: always
+    paths:
+      - touchmark-report.md
+      - touchmark-report.json
+      - touchmark-report.jsonl
+    expire_in: 30 days
+
+doctor:
+  stage: deliver
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "schedule" && $CI_PIPELINE_SCHEDULE_DESCRIPTION =~ /doctor/i
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "web"
+  # prepare: the write token without a deployment.
+  environment:
+    name: touchmark-distribute
+    action: prepare
+  script:
+    - touchmark doctor --hub .
+  artifacts:
+    when: always
+    paths:
+      - touchmark-doctor.md
+      - touchmark-doctor.json
+    expire_in: 30 days

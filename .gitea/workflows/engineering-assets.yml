@@ -1,0 +1,133 @@
+# The hub's CI on Gitea and Forgejo Actions, which run .gitea/workflows
+# instead of .github/workflows. The jobs of the GitHub workflow, without the
+# isolation probe:
+#
+#   pull request to the hub           check, plan --strict --comment (a
+#                                     fork's: without --strict, offline)
+#   push to the default branch,       distribute
+#   every day, Run workflow
+#   (engineering-assets-doctor.yml)   doctor, every Monday and on Run workflow
+#
+# Gitea and Forgejo Actions show every secret to the jobs of every branch, so
+# they cannot keep the write key to the default branch, and touchmark refuses
+# security.write_isolation: platform here. Either run the hub's CI on GitHub
+# or GitLab and deliver to Gitea and Forgejo from there, or set
+# write_isolation to none with a reason and protect every branch (*) so that
+# only maintainers can push: contributors then work from forks, which get no
+# secrets (README, "On Gitea or Forgejo").
+#
+# Secrets: TOUCHMARK_READ_TOKEN (reader), TOUCHMARK_WRITE_TOKEN (writer). The
+# permissions below limit the job token (GITEA_TOKEN) on Gitea.
+#
+# Every job runs in the touchmark image, pinned by digest, which Renovate
+# updates. The image has git and a shell but no Node.js, so the jobs clone the
+# hub with git instead of a checkout action, and keep no artifacts: the
+# report is in the job's log, and on Gitea 1.27 with runner 2.0 in its
+# summary. runs-on is a label of your runners: Gitea's runners register
+# ubuntu-latest by default; Forgejo runners have the labels they were
+# registered with.
+name: engineering-assets
+
+on:
+  pull_request:
+  push:
+    # Your default branch: add its name if it is neither main nor master.
+    # The jobs below run on the default branch only.
+    branches: [main, master]
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+
+env:
+  HUB: /tmp/touchmark-hub      # where each job clones the hub
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    container:
+      # TODO(release): pin the digest of the touchmark release image.
+      image: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+    defaults:
+      run:
+        shell: sh
+    steps:
+      - &clone
+        name: Clone the hub with its whole history
+        env:
+          HUB_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf "$HUB"
+          git -c init.defaultBranch=touchmark init -q "$HUB"
+          cd "$HUB"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          set -- fetch --no-tags origin "+refs/heads/*:refs/remotes/origin/*" "+$GITHUB_REF:refs/touchmark/run"
+          if [ -n "$HUB_TOKEN" ]; then
+            # The job token reaches git through its environment, for this host only.
+            auth=$(printf 'touchmark:%s' "$HUB_TOKEN" | base64 | tr -d '\n')
+            GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="http.$GITHUB_SERVER_URL/.extraHeader" \
+              GIT_CONFIG_VALUE_0="Authorization: Basic $auth" git "$@"
+          else
+            git "$@"
+          fi
+          git checkout -q --detach "$GITHUB_SHA"
+      - name: touchmark check
+        run: cd "$HUB" && touchmark check --hub .
+
+  plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      pull-requests: write             # plan --comment
+    container:
+      # TODO(release): pin the digest of the touchmark release image.
+      image: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+    defaults:
+      run:
+        shell: sh
+    steps:
+      - *clone
+      # A pull request from a fork gets no secrets: plan then reads no
+      # target, shows the hub's side and warns, and --strict would fail it
+      # for that alone.
+      - name: touchmark plan
+        run: |
+          set -- plan --hub . --comment
+          if [ "$HEAD_REPO" = "$GITHUB_REPOSITORY" ]; then set -- "$@" --strict; fi
+          echo "touchmark $*"
+          cd "$HUB" && touchmark "$@"
+        env:
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          TOUCHMARK_READ_TOKEN: ${{ secrets.TOUCHMARK_READ_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+
+  distribute:
+    # A schedule always runs on the default branch.
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 180               # the runner's default limit is 3h
+    concurrency:
+      group: touchmark-distribute
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    container:
+      # TODO(release): pin the digest of the touchmark release image.
+      image: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+    defaults:
+      run:
+        shell: sh
+    steps:
+      - *clone
+      - name: touchmark distribute
+        run: cd "$HUB" && touchmark distribute --hub . --deadline 2h40m
+        env:
+          TOUCHMARK_WRITE_TOKEN: ${{ secrets.TOUCHMARK_WRITE_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}

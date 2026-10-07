@@ -1,0 +1,57 @@
+# Which repositories this hub delivers to, and which packs each one gets
+# (touchmark, format v1). The JSON Schema for editors: `touchmark schema targets`.
+#
+# A repository listed here receives nothing until it opts in with an
+# .engineering-assets.yml file at its root; an empty file is enough. The opt-in
+# file can add packs and ignore paths, but cannot remove a pack assigned here.
+# An entry with opt_in: assumed subscribes the repositories it selects instead:
+# they get their packs without the file, and opt out with a file that says
+# enabled: false.
+#
+# A target's packs, in order: defaults.packs, then the packs of every entry
+# that matches it (in file order), then the packs of its opt-in file. Each
+# pack's requires from hub.yml comes before it; when two packs ship the same
+# path, the later one wins.
+#
+# A repository, organisation or group is named by its path (acme/billing,
+# corp:platform/api for the provider "corp" in hub.yml) or by its web URL
+# (https://gitlab.example.com/platform/api, whose provider is the one in
+# hub.yml at that url). Reports name every target <provider>:<path>.
+version: 1
+
+# defaults:
+#   provider: gh                    # needed only when hub.yml lists several providers
+#   packs: [agents]                 # every target gets these
+#   opt_in: required                # required: a target waits for its opt-in file;
+#                                   #   assumed: the hub subscribes it
+
+targets: []
+# targets:
+#   - repo: acme/billing            # one repository
+#     packs: [python-service, claude]
+#   - repo: https://github.com/acme/sdk   # a repository by its web URL
+#   - org: acme                     # every repository of an organisation...
+#     topics: [python-library]      # ...that has all these topics
+#     packs: [python-library]
+#   - org: acme
+#     match: [acme/svc-*]           # only repositories whose full path matches
+#     opt_in: assumed               # subscribed without an opt-in file
+#     packs: [python-service]
+#   - group: acme/platform          # GitLab: a group, with its subgroups
+#     subgroups: true               #   (false: the group itself only)
+#     packs: [python-service, gitlab]
+#   - repo: corp:platform/api       # a repository of the provider "corp" in hub.yml
+#   - provider: corp                # or name the provider in the entry
+#     group: data
+#     forks: false                  # forks are skipped unless this is true
+
+# Never delivered to, even when an entry above selects them. An entry is a
+# repository or a glob over repository paths: * within one segment, ** across
+# segments, ? one character, ignoring case. Quote a pattern that starts with
+# *, which YAML would read as an alias: - "**/legacy".
+# exclude:
+#   - acme/legacy-monolith
+#   - acme/*-archive
+#   - corp:platform/legacy/**       # a subgroup and every project beneath it
+#   - "**/sandbox"                  # quoted: it starts with *
+#   - https://github.com/acme/sandbox

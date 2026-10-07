@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Keeps the touchmark image in .gitlab-ci.yml and .gitea/workflows, and the actions in .github and .gitea workflows, pinned by digest and current.",
+    "Every update is a merge request that a person reviews and merges: its plan job runs the new touchmark against the targets, with the read token.",
+    "GHCR returns no release dates, so minimumReleaseAge cannot age the touchmark image (docs.renovatebot.com/key-concepts/minimum-release-age): a new release would reach the read token at once. Renovate therefore waits for your approval on its Dependency Dashboard before it opens a touchmark merge request: approve it once you have read the release notes and checked the signature, ideally after the week the other updates wait."
+  ],
+  "extends": ["config:recommended", "docker:pinDigests", "helpers:pinGitHubActionDigests"],
+  "enabledManagers": ["gitlabci", "github-actions"],
+  "minimumReleaseAge": "7 days",
+  "minimumReleaseAgeBehaviour": "timestamp-optional",
+  "packageRules": [
+    {
+      "description": "One merge request per touchmark release, for the image and the action together, never merged automatically, and opened only once you approve it on the Dependency Dashboard.",
+      "matchPackageNames": ["ghcr.io/bedrock-python/touchmark", "bedrock-python/touchmark"],
+      "groupName": "touchmark",
+      "automerge": false,
+      "dependencyDashboardApproval": true
+    }
+  ]
+}

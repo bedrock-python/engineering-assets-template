@@ -1,0 +1,192 @@
+# The hub's CI on GitHub Actions. touchmark checks every pull request to the
+# hub and delivers the packs from the default branch:
+#
+#   pull request to the hub           check; plan --strict --comment, after the probe
+#   push to the default branch,       probe, then distribute
+#   every day, Run workflow
+#   every Monday, Run workflow        probe, then doctor
+#
+# Pull requests from Dependabot and from forks get no Actions secrets, so
+# their plan runs without the read key: it shows the hub's side only, warns
+# that no target was checked, and passes (no --strict). Before you merge
+# an engine update, read its release notes and run plan with the read key
+# yourself (README, "Security").
+#
+# Keys (README, "Set up your hub"):
+#   reader  variable TOUCHMARK_READ_APP_ID, secret TOUCHMARK_READ_APP_KEY
+#   writer  variable TOUCHMARK_WRITE_APP_ID and secret TOUCHMARK_WRITE_APP_KEY
+#           in the environment touchmark-distribute, and nowhere else
+#
+# The probe tests every secret that carries a write key: if a job without the
+# environment can see one, distribute and doctor refuse to run and the pull
+# request's plan job fails. `touchmark check` fails when a workflow hands
+# touchmark a write key that the probe does not test, so add every new
+# TOUCHMARK_*_WRITE_* or *_SIGNING_KEY secret to both probe expressions.
+#
+# The touchmark action, pinned by commit with its version in a comment
+# (Dependabot moves both), runs the image of its own release with docker:
+# it resolves the version's image tag to a digest, checks that digest's build
+# provenance with gh attestation verify, and runs the image by that digest.
+# It reads the hub from the workspace (input hub, default .) and the keys
+# from the step's environment, never from inputs.
+#
+# Run workflow takes no inputs, and nothing runs on pull_request_target or
+# workflow_run: one-off operations come from .touchmark/operations.yml,
+# through review.
+name: engineering-assets
+
+on:
+  pull_request:
+  push:
+    # Your default branch: add its name if it is neither main nor master.
+    # The jobs below run on the default branch only.
+    branches: [main, master]
+  schedule:
+    - cron: "23 3 * * *"       # distribute; keep in sync with the distribute job
+    - cron: "47 4 * * 1"       # doctor; keep in sync with the doctor job
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0               # touchmark reads the hub's whole history
+          persist-credentials: false
+      # TODO(release): pin the commit of the touchmark release tag.
+      - uses: bedrock-python/touchmark@0000000000000000000000000000000000000000 # v0.1.0
+        with:
+          command: check
+
+  plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read                    # read the environment touchmark-distribute
+      pull-requests: write             # plan --comment
+    steps:
+      - name: Probe the write key isolation
+        run: |
+          if [ "$EXPOSED" != false ]; then
+            echo "::error title=touchmark probe::a write key is visible outside the environment touchmark-distribute; keep write keys in that environment only"
+            exit 2
+          fi
+        env:
+          EXPOSED: ${{ secrets.TOUCHMARK_WRITE_APP_KEY != '' || secrets.TOUCHMARK_WRITE_TOKEN != '' || secrets.TOUCHMARK_SIGNING_KEY != '' }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # TODO(release): pin the commit of the touchmark release tag.
+      - uses: bedrock-python/touchmark@0000000000000000000000000000000000000000 # v0.1.0
+        with:
+          command: plan
+          # Without the read key (Dependabot's pull requests, and those
+          # from forks), plan reads no target, and --strict would fail it
+          # for that alone.
+          strict: ${{ github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository }}
+          comment: true
+        env:
+          TOUCHMARK_READ_APP_ID: ${{ vars.TOUCHMARK_READ_APP_ID }}
+          TOUCHMARK_READ_APP_KEY: ${{ secrets.TOUCHMARK_READ_APP_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+      # On GitHub Enterprise Server use actions/upload-artifact v3.2.2: v4 and
+      # later do not support it.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: touchmark-plan
+          path: touchmark-report.*
+          if-no-files-found: ignore
+          retention-days: 30
+
+  probe:
+    # Runs without the environment, so it sees what any branch's workflow
+    # could see. A schedule always runs on the default branch.
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    outputs:
+      exposed: ${{ steps.probe.outputs.exposed }}
+    steps:
+      - id: probe
+        run: echo "exposed=$EXPOSED" >> "$GITHUB_OUTPUT"
+        env:
+          EXPOSED: ${{ secrets.TOUCHMARK_WRITE_APP_KEY != '' || secrets.TOUCHMARK_WRITE_TOKEN != '' || secrets.TOUCHMARK_SIGNING_KEY != '' }}
+
+  distribute:
+    needs: probe
+    if: github.event_name != 'schedule' || github.event.schedule == '23 3 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360               # touchmark starts no target after 5h30m
+    environment: touchmark-distribute
+    concurrency:
+      group: touchmark-distribute
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read                    # read the environment's deployment branches
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # TODO(release): pin the commit of the touchmark release tag.
+      - uses: bedrock-python/touchmark@0000000000000000000000000000000000000000 # v0.1.0
+        with:
+          command: distribute
+        env:
+          TOUCHMARK_KEY_EXPOSED: ${{ needs.probe.outputs.exposed }}
+          TOUCHMARK_WRITE_APP_ID: ${{ vars.TOUCHMARK_WRITE_APP_ID }}
+          TOUCHMARK_WRITE_APP_KEY: ${{ secrets.TOUCHMARK_WRITE_APP_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: touchmark-distribute
+          path: touchmark-report.*
+          if-no-files-found: ignore
+          retention-days: 30
+
+  doctor:
+    needs: probe
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '47 4 * * 1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: touchmark-distribute
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # TODO(release): pin the commit of the touchmark release tag.
+      - uses: bedrock-python/touchmark@0000000000000000000000000000000000000000 # v0.1.0
+        with:
+          command: doctor
+        env:
+          TOUCHMARK_KEY_EXPOSED: ${{ needs.probe.outputs.exposed }}
+          TOUCHMARK_WRITE_APP_ID: ${{ vars.TOUCHMARK_WRITE_APP_ID }}
+          TOUCHMARK_WRITE_APP_KEY: ${{ secrets.TOUCHMARK_WRITE_APP_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: touchmark-doctor
+          path: touchmark-doctor.*
+          if-no-files-found: ignore
+          retention-days: 30

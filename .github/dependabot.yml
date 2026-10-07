@@ -1,0 +1,25 @@
+# Dependabot keeps the actions in .github/workflows pinned and current, the
+# touchmark action among them. Every update is a pull request that a person
+# reviews and merges. Dependabot's pull requests get no Actions secrets, so
+# their plan job runs the new touchmark without the read key: it reads no
+# target, reports the hub's side only, warns that the targets were not
+# checked, and passes. Before merging an engine update, read its release
+# notes, and run plan with the read key yourself to check the targets: from
+# your machine, or by pushing a commit of your own to the pull request's
+# branch, whose run then gets the repository's secrets.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Wait a week before proposing a new release, so that a broken or
+    # compromised one is more likely to be withdrawn first.
+    cooldown:
+      default-days: 7
+    groups:
+      # actions/* together; touchmark always comes in a pull request of its own.
+      github-actions:
+        patterns: ["actions/*"]
+    commit-message:
+      prefix: chore
