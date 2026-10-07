@@ -149,10 +149,10 @@ A web URL names a repository or a namespace of the provider in `hub.yml` whose `
 | `gitlab` | `.gitlab/merge_request_templates/Default.md`, `.gitlab/issue_templates/Bug.md` and `Feature.md` | — |
 
 How they fit together:
-- **Shared instructions, local facts.** The shared files never name a tracker, a branch pattern or a build command. They tell agents to read `.agents/project.md`, where each team writes those facts. The profile ships as a skeleton: once a team edits it, it belongs to the repository.
+- **Shared instructions, local facts.** The shared files never name a tracker, a branch pattern or a build command. They tell agents to read `.agents/project.md`, where each team writes those facts. The profile ships as a skeleton: once a team edits it, it belongs to the repository. Until then, `AGENTS.md` has agents find the facts in the repository (build files, CI, `CONTRIBUTING.md`, git), say where they found them and offer to fill the profile, so no repository depends on an empty file.
 - **One source for every agent.** Codex, Cursor, Copilot and Claude Code read `AGENTS.md`; `CLAUDE.md` imports it for Claude Code. The review checklist lives once in `.agents/prompts/review.md`, and the Claude skill and subagent follow it.
 - **Skills with side effects wait to be asked.** `/new-branch`, `/commit`, `/pr`, `/spec`, `/app-start` and `/app-stop` run only when you invoke them. Skill names avoid Claude Code's built-in commands, such as `/review` and `/branch`.
-- **No hooks, no extra permissions.** `.claude/settings.json` holds deny rules only.
+- **No hooks, no extra permissions.** `.claude/settings.json` holds deny rules only. `Read(!.env.example)` keeps `.env.example` readable: in a `deny` list, a rule that starts with `!` carves its paths out of the rules listed before it in the same file ([Claude Code's permission rules](https://code.claude.com/docs/en/permissions#read-and-edit)).
 - **Guidelines stay out of `docs/`.** Many projects publish `docs/` as their documentation site, and the guidelines are for the people and agents who change the code, not for its users: they live in `.agents/guidelines/`, next to the profile and the prompts.
 - `python-service` and `python-library` both ship `.agents/guidelines/python.md` and `testing.md`, with different content: give a repository one of them.
 
