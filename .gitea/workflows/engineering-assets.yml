@@ -49,8 +49,7 @@ jobs:
     permissions:
       contents: read
     container:
-      # TODO(release): pin the digest of the touchmark release image.
-      image: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      image: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0b78f8d9b61a185be6ff7d81009160b775bbc85448b9d20f808551014126c022
     defaults:
       run:
         shell: sh
@@ -85,8 +84,7 @@ jobs:
       contents: read
       pull-requests: write             # plan --comment
     container:
-      # TODO(release): pin the digest of the touchmark release image.
-      image: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      image: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0b78f8d9b61a185be6ff7d81009160b775bbc85448b9d20f808551014126c022
     defaults:
       run:
         shell: sh
@@ -119,8 +117,7 @@ jobs:
     permissions:
       contents: read
     container:
-      # TODO(release): pin the digest of the touchmark release image.
-      image: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      image: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0b78f8d9b61a185be6ff7d81009160b775bbc85448b9d20f808551014126c022
     defaults:
       run:
         shell: sh
