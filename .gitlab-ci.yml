@@ -31,7 +31,7 @@ workflow:
 
 default:
   image:
-    name: ghcr.io/bedrock-python/touchmark:0.1.0@sha256:0b78f8d9b61a185be6ff7d81009160b775bbc85448b9d20f808551014126c022
+    name: ghcr.io/bedrock-python/touchmark:0.2.0@sha256:532374034f8ee254f1de9597316b0888cbe58ceb9c99c150b49ba94b21a54fc1
     entrypoint: [""]
 
 variables:

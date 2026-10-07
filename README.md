@@ -175,7 +175,7 @@ GitHub reads pull request and issue templates, `CODE_OF_CONDUCT.md` and `SECURIT
 |---|---|
 | change a shared file everywhere | edit it in the pack, open a pull request in the hub, check `plan`, merge |
 | let one repository keep its own version | edit the file in that repository (it becomes local), or add it to `ignore` |
-| bring a diverged file back under the hub | run `touchmark apply --adopt <path>` in that repository and open a pull request there |
+| bring a diverged file back under the hub | run `touchmark apply --adopt <path>` in that repository (add `--assume-opt-in` when the hub subscribes it through an `org:` or `group:` entry and it has no opt-in file) and open a pull request there |
 | retire a file | delete it from the pack; repositories that never changed it get a pull request deleting it |
 | add a repository | add it to `targets.yml`; the next run visits it once it has opted in, or at once with `opt_in: assumed` |
 | undo a closed sync pull request | reopen it, or tick *Propose this content again* in its description |
