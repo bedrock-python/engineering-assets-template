@@ -60,7 +60,7 @@ jobs:
         with:
           fetch-depth: 0               # touchmark reads the hub's whole history
           persist-credentials: false
-      - uses: bedrock-python/touchmark@dd1e577da6af71181c2d7c38cc5fb1c8463d3451 # v0.1.0
+      - uses: bedrock-python/touchmark@2bae3166ed460f59a977122f1c84d2b464396e26 # v0.2.0
         with:
           command: check
 
@@ -85,7 +85,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: bedrock-python/touchmark@dd1e577da6af71181c2d7c38cc5fb1c8463d3451 # v0.1.0
+      - uses: bedrock-python/touchmark@2bae3166ed460f59a977122f1c84d2b464396e26 # v0.2.0
         with:
           command: plan
           # Without the read key (Dependabot's pull requests, and those
@@ -141,7 +141,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: bedrock-python/touchmark@dd1e577da6af71181c2d7c38cc5fb1c8463d3451 # v0.1.0
+      - uses: bedrock-python/touchmark@2bae3166ed460f59a977122f1c84d2b464396e26 # v0.2.0
         with:
           command: distribute
         env:
@@ -171,7 +171,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: bedrock-python/touchmark@dd1e577da6af71181c2d7c38cc5fb1c8463d3451 # v0.1.0
+      - uses: bedrock-python/touchmark@2bae3166ed460f59a977122f1c84d2b464396e26 # v0.2.0
         with:
           command: doctor
         env:
