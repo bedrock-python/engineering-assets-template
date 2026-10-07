@@ -4,7 +4,8 @@
 A skeleton from the engineering-assets hub: fill it in for this repository.
 Once you edit it, the file is this repository's own and the hub never changes
 it again. Agents read it before every task (AGENTS.md), so keep it short and
-factual, and delete the hints you have answered.
+factual, and delete the hints you have answered. Until it is filled in, agents
+find these facts in the repository instead, and say where they found them.
 -->
 
 ## About
