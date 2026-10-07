@@ -106,7 +106,7 @@ version: 1
 packs: [claude]                 # in addition to what the hub assigns
 ignore:
   - .claude/settings.json       # we keep our own
-  - docs/guidelines/**
+  - .agents/guidelines/**
 ```
 
 Editing `packs` or `ignore` in this file is also how a team changes its mind: content it declined by closing a sync pull request is proposed again after the change. Comments and formatting don't count.
@@ -144,8 +144,8 @@ A web URL names a repository or a namespace of the provider in `hub.yml` whose `
 |---|---|---|
 | `agents` | `AGENTS.md`, the instructions every coding agent reads; `.agents/project.md`, a project profile for the team to fill in; `.agents/prompts/review.md` and `.agents/prompts/refactor-check.md` | — |
 | `claude` | `CLAUDE.md`, which imports `AGENTS.md` and the profile; `.claude/settings.json`, which only denies reading secrets; the skills `/review-change`, `/spec`, `/new-branch`, `/commit` and `/pr`; the `reviewer` subagent | `agents` |
-| `python-service` | `docs/guidelines/python.md`, `testing.md` and `database.md`; the skills `/app-start`, `/app-stop`, `/test` and `/fmt`; the `test-runner` subagent | `agents` |
-| `python-library` | `docs/guidelines/python.md`, `testing.md` and `public-api.md` | `agents` |
+| `python-service` | `.agents/guidelines/python.md`, `testing.md` and `database.md`; the skills `/app-start`, `/app-stop`, `/test` and `/fmt`; the `test-runner` subagent | `agents` |
+| `python-library` | `.agents/guidelines/python.md`, `testing.md` and `public-api.md` | `agents` |
 | `gitlab` | `.gitlab/merge_request_templates/Default.md`, `.gitlab/issue_templates/Bug.md` and `Feature.md` | — |
 
 How they fit together:
@@ -153,7 +153,8 @@ How they fit together:
 - **One source for every agent.** Codex, Cursor, Copilot and Claude Code read `AGENTS.md`; `CLAUDE.md` imports it for Claude Code. The review checklist lives once in `.agents/prompts/review.md`, and the Claude skill and subagent follow it.
 - **Skills with side effects wait to be asked.** `/new-branch`, `/commit`, `/pr`, `/spec`, `/app-start` and `/app-stop` run only when you invoke them. Skill names avoid Claude Code's built-in commands, such as `/review` and `/branch`.
 - **No hooks, no extra permissions.** `.claude/settings.json` holds deny rules only.
-- `python-service` and `python-library` both ship `docs/guidelines/python.md` and `testing.md`, with different content: give a repository one of them.
+- **Guidelines stay out of `docs/`.** Many projects publish `docs/` as their documentation site, and the guidelines are for the people and agents who change the code, not for its users: they live in `.agents/guidelines/`, next to the profile and the prompts.
+- `python-service` and `python-library` both ship `.agents/guidelines/python.md` and `testing.md`, with different content: give a repository one of them.
 
 GitHub reads pull request and issue templates, `CODE_OF_CONDUCT.md` and `SECURITY.md` from your organisation's `.github` repository when a repository has none, so there is no GitHub pack. Add one if those files must live in every repository.
 

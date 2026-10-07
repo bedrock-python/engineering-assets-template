@@ -17,7 +17,7 @@ Instructions for AI coding agents working in this repository. People may find th
 - Before you call a task done, run the format, lint and test commands from the profile, and report what you ran and what it printed. Never say a check passed if you did not run it.
 - Update the documentation and the changelog when something users can see changes.
 - Use the standard library and the dependencies the project already has. Adding a dependency is a decision for people: ask first.
-- When the guidelines in `docs/guidelines/` cover what you are doing, follow them.
+- When the guidelines in `.agents/guidelines/` cover what you are doing, follow them.
 
 ## Safety
 
