@@ -49,7 +49,7 @@ jobs:
     permissions:
       contents: read
     container:
-      image: ghcr.io/bedrock-python/touchmark:0.2.0@sha256:532374034f8ee254f1de9597316b0888cbe58ceb9c99c150b49ba94b21a54fc1
+      image: ghcr.io/bedrock-python/touchmark:0.3.0@sha256:d0b1b4f5ac763ad9bd4eee88e8b6b91680a2fe3318fefa1834e47cd27baab9ee
     defaults:
       run:
         shell: sh
@@ -84,7 +84,7 @@ jobs:
       contents: read
       pull-requests: write             # plan --comment
     container:
-      image: ghcr.io/bedrock-python/touchmark:0.2.0@sha256:532374034f8ee254f1de9597316b0888cbe58ceb9c99c150b49ba94b21a54fc1
+      image: ghcr.io/bedrock-python/touchmark:0.3.0@sha256:d0b1b4f5ac763ad9bd4eee88e8b6b91680a2fe3318fefa1834e47cd27baab9ee
     defaults:
       run:
         shell: sh
@@ -117,7 +117,7 @@ jobs:
     permissions:
       contents: read
     container:
-      image: ghcr.io/bedrock-python/touchmark:0.2.0@sha256:532374034f8ee254f1de9597316b0888cbe58ceb9c99c150b49ba94b21a54fc1
+      image: ghcr.io/bedrock-python/touchmark:0.3.0@sha256:d0b1b4f5ac763ad9bd4eee88e8b6b91680a2fe3318fefa1834e47cd27baab9ee
     defaults:
       run:
         shell: sh
