@@ -14,6 +14,7 @@ id: change-me
 #   GitHub: the writer App's bot, like acme-assets-write[bot]
 #   GitLab, Gitea, Forgejo: the writer's username, like touchmark-writer
 #   Bitbucket: the writer account's UUID, in quotes, like "{3f2a8d4e-…}"
+#   Azure DevOps: the writer user's identity id, like 3f2a8d4e-…
 # writer: acme-assets-write[bot]
 
 # auto: sign commits where it costs nothing and where a target's rules require
@@ -21,8 +22,9 @@ id: change-me
 # sign: auto
 
 # With writer and sign at the top level, the hub delivers to the platform its
-# own CI runs on (the instance of GITHUB_SERVER_URL or CI_SERVER_URL, or
-# Bitbucket Cloud under Bitbucket Pipelines; when you run touchmark yourself,
+# own CI runs on (the instance of GITHUB_SERVER_URL or CI_SERVER_URL,
+# Bitbucket Cloud under Bitbucket Pipelines, the organization of Azure DevOps
+# under Azure Pipelines; when you run touchmark yourself,
 # github.com, gitlab.com or bitbucket.org, from the hub's origin). For
 # a self-managed instance, or to deliver to several platforms, delete those
 # two lines and list the platforms instead. Each provider reads its keys from
@@ -67,11 +69,24 @@ security:
   # selected users, which touchmark cannot read: say so in reason, like
   # "Bitbucket Premium: only admins may deploy to touchmark-distribute, from
   # main only". Without Premium, use none with a reason.
+  # On Azure Pipelines, platform holds with a Branch control check on the
+  # variable group touchmark-distribute that admits the default branch only,
+  # which touchmark cannot read from the job: say so in reason, like "Azure:
+  # Branch control admits refs/heads/main only to touchmark-distribute".
   write_isolation: platform
   # reason: "Gitea Actions: every branch is protected, contributors work from forks"
   # A public hub skips targets that are not public and only counts them, since
   # anyone can read its CI logs; deliver names them in the logs.
   private_targets_in_public_hub: skip
+  # The writer has no access to the hub (refuse). On GitLab, a hub that must
+  # live in the group of its targets, which the writer is a member of, sets
+  # guard: the writer may be a Developer of the hub; touchmark doctor checks
+  # it can neither push nor merge to the default branch, that merge requests
+  # wait for a pipeline that succeeded and run the default branch's CI file
+  # (Settings > CI/CD > CI/CD configuration file:
+  # .gitlab-ci.yml@<hub path>:<default branch>), and plan refuses a hub merge
+  # request the writer opened or pushed to.
+  # writer_on_hub: refuse
 
 # Sync pull requests. After a pull request is opened, its title, draft state
 # and labels belong to people.

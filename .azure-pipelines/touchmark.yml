@@ -1,0 +1,67 @@
+# One touchmark step of azure-pipelines.yml: it runs the touchmark image with
+# docker on the agent, as the agent's own user, and publishes the report
+# files. Azure Pipelines cannot run the image as a container job: that needs
+# bash, glibc and Node.js in the image, and touchmark's is Alpine with busybox.
+#
+# The step maps into its environment the job access token (SYSTEM_ACCESSTOKEN:
+# touchmark reads the hub's default branch and keeps plan's comment with it),
+# the reader's token, and with write: true the writer's: a secret variable
+# reaches a step only when the step maps it. The container gets, by name (no
+# value is on a command line), CI, TF_BUILD, the BUILD_*, SYSTEM_*,
+# ENVIRONMENT_* and TOUCHMARK_* variables and the proxy settings, HOME=/tmp
+# and the sources directory; nothing else. A secret the run does not define
+# stays "$(NAME)" in the step's environment, and is left out as undefined.
+#
+# The image is pinned by digest here and nowhere else: no variable names it,
+# so none can swap it. Renovate keeps the tag and digest current.
+
+parameters:
+  - name: name                         # the step's name: probe, check, plan, distribute, doctor
+    type: string
+  - name: args                         # touchmark's command line, after "touchmark"
+    type: string
+  - name: write                        # map the writer's token into the step
+    type: boolean
+    default: false
+  - name: report                       # publish the report files as an artifact
+    type: boolean
+    default: false
+
+steps:
+  - bash: |
+      set -euo pipefail
+      # A variable set when the run was queued must not choose the docker
+      # daemon that receives the keys.
+      unset DOCKER_HOST DOCKER_CONTEXT DOCKER_CONFIG DOCKER_TLS_VERIFY DOCKER_CERT_PATH
+      opts=(--rm --init --user "$(id -u):$(id -g)" --cap-drop ALL --security-opt no-new-privileges
+        --env CI=true --env HOME=/tmp --volume "$PWD:$PWD" --workdir "$PWD")
+      while IFS= read -r name; do
+        case $name in
+        TF_BUILD | BUILD_* | SYSTEM_* | ENVIRONMENT_* | TOUCHMARK_* | HTTP_PROXY | HTTPS_PROXY | NO_PROXY | http_proxy | https_proxy | no_proxy)
+          [ "${!name}" = "\$($name)" ] || opts+=(--env "$name") ;;
+        esac
+      done < <(compgen -e | LC_ALL=C sort)
+      status=0
+      docker run "${opts[@]}" \
+        ghcr.io/bedrock-python/touchmark:0.5.0@sha256:165487df481d4be30fff87f62cd410176e3e865ee613aae24177cff3658262e9 \
+        ${{ parameters.args }} || status=$?
+      mkdir -p "$BUILD_ARTIFACTSTAGINGDIRECTORY/touchmark"
+      for f in touchmark-report.md touchmark-report.json touchmark-report.jsonl touchmark-doctor.md touchmark-doctor.json; do
+        if [ -f "$f" ]; then
+          cp "$f" "$BUILD_ARTIFACTSTAGINGDIRECTORY/touchmark/"
+          echo "##vso[task.setvariable variable=touchmarkReports]true"
+          case $f in *.md) echo "##vso[task.uploadsummary]$PWD/$f" ;; esac
+        fi
+      done
+      exit "$status"
+    displayName: ${{ parameters.name }}
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      TOUCHMARK_READ_TOKEN: $(TOUCHMARK_READ_TOKEN)
+      ${{ if parameters.write }}:
+        TOUCHMARK_WRITE_TOKEN: $(TOUCHMARK_WRITE_TOKEN)
+  - ${{ if parameters.report }}:
+    - publish: $(Build.ArtifactStagingDirectory)/touchmark
+      artifact: touchmark-${{ parameters.name }}-$(System.JobAttempt)
+      displayName: ${{ parameters.name }} report
+      condition: and(succeededOrFailed(), eq(variables['touchmarkReports'], 'true'))

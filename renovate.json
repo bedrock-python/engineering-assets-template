@@ -1,12 +1,21 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": [
-    "Keeps the touchmark image in .gitlab-ci.yml, .gitea/workflows and bitbucket-pipelines.yml, and the actions in .github and .gitea workflows, pinned by digest and current.",
+    "Keeps the touchmark image in .gitlab-ci.yml, .gitea/workflows, bitbucket-pipelines.yml and .azure-pipelines/touchmark.yml, and the actions in .github and .gitea workflows, pinned by digest and current.",
     "Every update is a merge request that a person reviews and merges: its plan job runs the new touchmark against the targets, with the read token.",
     "GHCR returns no release dates, so minimumReleaseAge cannot age the touchmark image (docs.renovatebot.com/key-concepts/minimum-release-age): a new release would reach the read token at once. Renovate therefore waits for your approval on its Dependency Dashboard before it opens a touchmark merge request: approve it once you have read the release notes and checked the signature, ideally after the week the other updates wait."
   ],
   "extends": ["config:recommended", "docker:pinDigests", "helpers:pinGitHubActionDigests"],
-  "enabledManagers": ["gitlabci", "github-actions", "bitbucket-pipelines"],
+  "enabledManagers": ["gitlabci", "github-actions", "bitbucket-pipelines", "custom.regex"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The touchmark image that .azure-pipelines/touchmark.yml runs with docker, which no built-in manager reads.",
+      "managerFilePatterns": ["/^\\.azure-pipelines/touchmark\\.yml$/"],
+      "matchStrings": ["(?<depName>ghcr\\.io/bedrock-python/touchmark):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[0-9a-f]{64})"],
+      "datasourceTemplate": "docker"
+    }
+  ],
   "minimumReleaseAge": "7 days",
   "minimumReleaseAgeBehaviour": "timestamp-optional",
   "packageRules": [
