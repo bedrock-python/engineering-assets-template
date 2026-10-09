@@ -78,6 +78,15 @@ security:
   # A public hub skips targets that are not public and only counts them, since
   # anyone can read its CI logs; deliver names them in the logs.
   private_targets_in_public_hub: skip
+  # The writer has no access to the hub (refuse). On GitLab, a hub that must
+  # live in the group of its targets, which the writer is a member of, sets
+  # guard: the writer may be a Developer of the hub; touchmark doctor checks
+  # it can neither push nor merge to the default branch, that merge requests
+  # wait for a pipeline that succeeded and run the default branch's CI file
+  # (Settings > CI/CD > CI/CD configuration file:
+  # .gitlab-ci.yml@<hub path>:<default branch>), and plan refuses a hub merge
+  # request the writer opened or pushed to.
+  # writer_on_hub: refuse
 
 # Sync pull requests. After a pull request is opened, its title, draft state
 # and labels belong to people.
