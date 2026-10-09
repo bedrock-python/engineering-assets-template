@@ -24,7 +24,7 @@ jobs:
     permissions:
       contents: read
     container:
-      image: ghcr.io/bedrock-python/touchmark:0.3.0@sha256:d0b1b4f5ac763ad9bd4eee88e8b6b91680a2fe3318fefa1834e47cd27baab9ee
+      image: ghcr.io/bedrock-python/touchmark:0.4.0@sha256:14036ecf3e5a0d3e6eb70b3b9beddfef3df0b95e51b26daeb6d9b9b793c2c578
     defaults:
       run:
         shell: sh
