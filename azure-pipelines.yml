@@ -1,0 +1,175 @@
+# The hub's CI on Azure Pipelines (Azure DevOps Services, the hub in Azure
+# Repos). touchmark checks every pull request to the hub and delivers the
+# packs from the default branch:
+#
+#   pull request to the hub           probe, then check and plan --strict --comment
+#   push to the default branch        probe, then distribute
+#   schedule "touchmark distribute"   probe, then distribute (daily)
+#   schedule "touchmark doctor"       probe, then doctor (weekly)
+#   Run pipeline                      probe, then distribute or doctor, as chosen
+#
+# Azure Pipelines reads only this file and .azure-pipelines/; GitHub, GitLab,
+# Gitea, Forgejo and Bitbucket ignore them, as Azure ignores their CI files.
+# Pull request builds of Azure Repos come from the branch policy Build
+# validation on the default branch, not from a pr: trigger (README, "On Azure
+# DevOps").
+#
+# Keys (README, "On Azure DevOps"):
+#   TOUCHMARK_READ_TOKEN   secret variable of this pipeline: the reader's
+#                          personal access token
+#   TOUCHMARK_WRITE_TOKEN  secret variable of the variable group
+#                          touchmark-distribute, and nowhere else: the
+#                          writer's personal access token
+# The job access token, System.AccessToken, reads the hub's default branch and
+# keeps plan's comment; .azure-pipelines/touchmark.yml maps it into each step.
+#
+# Only a stage that links the variable group touchmark-distribute gets its
+# variables, and any branch's copy of this file could link it: the group's
+# Branch control check, admitting the default branch only, is what stops
+# every other branch's stage. touchmark cannot read that check from the job,
+# so hub.yml states it in security.reason; `touchmark doctor --hub-token`
+# verifies it. The distribute and doctor jobs are deployment jobs to the
+# environment touchmark-distribute (Environment.Name), which touchmark
+# requires; add an exclusive lock check to it, so that two runs never
+# overlap. Keep "Limit variables that can be set at queue time" on: a variable
+# set when a run of the default branch is queued reaches the steps that hold
+# the write key. The probe stage runs without the group and fails when it sees a
+# write key: a pipeline variable would give it to every branch.
+#
+# The default branch: the push and schedule triggers start on main and master.
+# If yours has another name, add it to their branch lists and to the
+# conditions below. touchmark reads the default branch through the API and
+# refuses distribute on any other.
+
+trigger:
+  batch: true                          # pushes during a run start one run after it
+  branches:
+    include: [main, master]
+
+pr: none                               # Azure Repos: Build validation starts pull request builds
+
+schedules:
+  - cron: "17 4 * * *"
+    displayName: touchmark distribute
+    branches:
+      include: [main, master]
+    always: true
+  - cron: "43 5 * * 1"
+    displayName: touchmark doctor
+    branches:
+      include: [main, master]
+    always: true
+
+parameters:
+  - name: run
+    displayName: What a manual run does
+    type: string
+    default: distribute
+    values: [distribute, doctor]
+
+pool:
+  vmImage: ubuntu-24.04
+
+stages:
+  # Runs without the variable group, so it sees what any branch's run could
+  # see.
+  - stage: probe
+    jobs:
+      - job: probe
+        timeoutInMinutes: 5
+        steps:
+          - checkout: none             # the probe reads no files
+          - template: .azure-pipelines/touchmark.yml
+            parameters:
+              name: probe
+              args: probe
+              write: true              # a pipeline variable with the write key would show here
+
+  - stage: check
+    dependsOn: probe
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - job: check
+        timeoutInMinutes: 30
+        steps:
+          - checkout: self
+            fetchDepth: 0              # touchmark reads the hub's whole history
+          - template: .azure-pipelines/touchmark.yml
+            parameters:
+              name: check
+              args: check --hub .
+      - job: plan
+        timeoutInMinutes: 60
+        steps:
+          - checkout: self
+            fetchDepth: 0
+          # plan reads the providers from the default branch's hub.yml: fetch
+          # the branch the pull request targets, with the job access token in
+          # git's environment, never on its command line.
+          - bash: |
+              set -euo pipefail
+              branch=${SYSTEM_PULLREQUEST_TARGETBRANCH#refs/heads/}
+              GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: bearer $SYSTEM_ACCESSTOKEN" \
+                git fetch --no-tags origin "+refs/heads/$branch:refs/remotes/origin/$branch"
+            displayName: fetch the target branch
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          - template: .azure-pipelines/touchmark.yml
+            parameters:
+              name: plan
+              args: plan --hub . --strict --comment
+              report: true
+
+  - stage: distribute
+    dependsOn: probe
+    condition: >-
+      and(succeeded(), in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master'),
+      or(in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'),
+      and(eq(variables['Build.Reason'], 'Schedule'), eq(variables['Build.CronSchedule.DisplayName'], 'touchmark distribute')),
+      and(eq(variables['Build.Reason'], 'Manual'), eq('${{ parameters.run }}', 'distribute'))))
+    jobs:
+      - deployment: distribute
+        environment: touchmark-distribute
+        variables:
+          - group: touchmark-distribute
+        # A Microsoft-hosted job of a free private project ends after 60
+        # minutes: touchmark starts no target after 50, and the next run picks
+        # up what is left. With paid parallel jobs, raise both together.
+        timeoutInMinutes: 60
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  fetchDepth: 0
+                - template: .azure-pipelines/touchmark.yml
+                  parameters:
+                    name: distribute
+                    args: distribute --hub . --deadline 50m
+                    write: true
+                    report: true
+
+  - stage: doctor
+    dependsOn: probe
+    condition: >-
+      and(succeeded(), in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master'),
+      or(and(eq(variables['Build.Reason'], 'Schedule'), eq(variables['Build.CronSchedule.DisplayName'], 'touchmark doctor')),
+      and(eq(variables['Build.Reason'], 'Manual'), eq('${{ parameters.run }}', 'doctor'))))
+    jobs:
+      - deployment: doctor
+        environment: touchmark-distribute
+        variables:
+          - group: touchmark-distribute
+        timeoutInMinutes: 60
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  fetchDepth: 0
+                - template: .azure-pipelines/touchmark.yml
+                  parameters:
+                    name: doctor
+                    args: doctor --hub .
+                    write: true
+                    report: true

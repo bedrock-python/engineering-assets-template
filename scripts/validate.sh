@@ -11,11 +11,12 @@
 #      file needs a GitLab instance to lint (CI Lint in the project, or
 #      `glab ci lint`), and bitbucket-pipelines.yml Bitbucket (its editor's
 #      validator).
-#   3. bitbucket-pipelines.yml runs the touchmark image pinned by digest, the
-#      same one as .gitlab-ci.yml.
+#   3. bitbucket-pipelines.yml and .azure-pipelines/touchmark.yml (the step
+#      azure-pipelines.yml runs) run the touchmark image pinned by digest,
+#      the same one as .gitlab-ci.yml.
 #   4. With --release: no `TODO(release)` pin is left, so the workflows name
-#      a real touchmark release (bitbucket-pipelines.yml carries one until a
-#      release runs a hub on Bitbucket Pipelines).
+#      a real touchmark release (.azure-pipelines/touchmark.yml carries one
+#      until a release runs a hub on Azure Pipelines).
 #   5. With --public: no file git tracks or would add points readers of a
 #      public repository at notes they cannot open: a design document by
 #      number (RFC-NNNN) or section sign, a milestone name such as M2 or
@@ -164,7 +165,8 @@ if [ "${#workflows[@]}" -gt 0 ]; then
   fi
 fi
 
-# 3. The image of bitbucket-pipelines.yml: touchmark by digest, as on GitLab.
+# 3. The images of bitbucket-pipelines.yml and .azure-pipelines/touchmark.yml:
+# touchmark by digest, as on GitLab.
 image_of() { sed -E 's/^[[:space:]]*(image|name):[[:space:]]*//; s/[[:space:]]+#.*$//; s/[[:space:]]*$//; s/^"(.*)"$/\1/'; }
 if [ -f bitbucket-pipelines.yml ]; then
   # Without a match grep fails, and pipefail with set -e would end the
@@ -179,6 +181,24 @@ if [ -f bitbucket-pipelines.yml ]; then
     fail "bitbucket-pipelines.yml runs $bb_image, .gitlab-ci.yml $gl_image: pin one touchmark everywhere"
   else
     pass "bitbucket-pipelines.yml runs the pinned touchmark image"
+  fi
+fi
+# The image of .azure-pipelines/touchmark.yml, which azure-pipelines.yml runs
+# with docker: touchmark by digest, the one of .gitlab-ci.yml, named once.
+azure_steps=.azure-pipelines/touchmark.yml
+if [ -f azure-pipelines.yml ] || [ -f "$azure_steps" ]; then
+  az_images=$(grep -oE 'ghcr\.io/bedrock-python/touchmark[^[:space:]]*' "$azure_steps" 2>/dev/null || true)
+  gl_image=$(grep -E '^[[:space:]]+name:[[:space:]]*"?ghcr\.io/bedrock-python/touchmark' .gitlab-ci.yml 2>/dev/null | head -n 1 | image_of || true)
+  if [ -z "$az_images" ]; then
+    fail "$azure_steps names no touchmark image; it runs touchmark pinned by digest"
+  elif [ "$(printf '%s\n' "$az_images" | wc -l)" -ne 1 ]; then
+    fail "$azure_steps names the touchmark image more than once: keep one pin"
+  elif ! grep -qE '^ghcr\.io/bedrock-python/touchmark:[^@[:space:]]+@sha256:[0-9a-f]{64}$' <<<"$az_images"; then
+    fail "$azure_steps: the image is not touchmark pinned by digest: $az_images"
+  elif [ -n "$gl_image" ] && [ "$az_images" != "$gl_image" ]; then
+    fail "$azure_steps runs $az_images, .gitlab-ci.yml $gl_image: pin one touchmark everywhere"
+  else
+    pass "$azure_steps runs the pinned touchmark image"
   fi
 fi
 
