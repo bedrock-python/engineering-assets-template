@@ -167,9 +167,13 @@ fi
 # 3. The image of bitbucket-pipelines.yml: touchmark by digest, as on GitLab.
 image_of() { sed -E 's/^[[:space:]]*(image|name):[[:space:]]*//; s/[[:space:]]+#.*$//; s/[[:space:]]*$//; s/^"(.*)"$/\1/'; }
 if [ -f bitbucket-pipelines.yml ]; then
-  bb_image=$(grep -E '^image:' bitbucket-pipelines.yml | head -n 1 | image_of)
+  # Without a match grep fails, and pipefail with set -e would end the
+  # script silently: || true, and the empty result fails below.
+  bb_image=$(grep -E '^image:' bitbucket-pipelines.yml | head -n 1 | image_of || true)
   gl_image=$(grep -E '^[[:space:]]+name:[[:space:]]*"?ghcr\.io/bedrock-python/touchmark' .gitlab-ci.yml 2>/dev/null | head -n 1 | image_of || true)
-  if ! grep -qE '^ghcr\.io/bedrock-python/touchmark:[^@[:space:]]+@sha256:[0-9a-f]{64}$' <<<"$bb_image"; then
+  if [ -z "$bb_image" ]; then
+    fail "bitbucket-pipelines.yml has no top-level image: line; set image: to touchmark pinned by digest"
+  elif ! grep -qE '^ghcr\.io/bedrock-python/touchmark:[^@[:space:]]+@sha256:[0-9a-f]{64}$' <<<"$bb_image"; then
     fail "bitbucket-pipelines.yml: the image is not touchmark pinned by digest: ${bb_image:-none}"
   elif [ -n "$gl_image" ] && [ "$bb_image" != "$gl_image" ]; then
     fail "bitbucket-pipelines.yml runs $bb_image, .gitlab-ci.yml $gl_image: pin one touchmark everywhere"
