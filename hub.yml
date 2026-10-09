@@ -63,9 +63,10 @@ security:
   #             cannot limit a secret to one branch, so a hub that runs its CI
   #             there needs external or none.
   # On Bitbucket Pipelines, platform holds only on Premium, with the deployment
-  # touchmark-distribute limited to the default branch, which touchmark cannot
-  # read: say so in reason, like "Bitbucket Premium: only main may deploy to
-  # touchmark-distribute". Without Premium, use none with a reason.
+  # touchmark-distribute limited to the default branch and to admins or
+  # selected users, which touchmark cannot read: say so in reason, like
+  # "Bitbucket Premium: only admins may deploy to touchmark-distribute, from
+  # main only". Without Premium, use none with a reason.
   write_isolation: platform
   # reason: "Gitea Actions: every branch is protected, contributors work from forks"
   # A public hub skips targets that are not public and only counts them, since

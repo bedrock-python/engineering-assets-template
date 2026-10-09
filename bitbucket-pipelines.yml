@@ -25,8 +25,10 @@
 # Only a step with `deployment: touchmark-distribute` gets that environment's
 # variables. Any branch's copy of this file could name it too, so the write
 # key stays on the default branch only when the environment's deployment
-# permissions (Premium) admit the default branch alone: touchmark cannot read
-# them, and hub.yml says so in security.reason. Without Premium, set
+# permissions (Premium) admit the default branch alone, and only admins or
+# selected users, since anyone with write access can run the custom
+# pipelines with variables: touchmark cannot read them, and hub.yml says so
+# in security.reason. Without Premium, set
 # security.write_isolation to none with a reason (README, "On Bitbucket
 # Cloud"). The probe step runs without the deployment and fails when it sees
 # a write key: a repository or workspace variable would give it to every
