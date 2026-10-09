@@ -32,7 +32,8 @@ targets.yml                             which repositories to visit and which pa
 .gitlab/CODEOWNERS                      code owners on GitLab
 .gitea/workflows/                       the same jobs on Gitea and Forgejo Actions
 .gitea/CODEOWNERS                       code owners on Gitea and Forgejo
-renovate.json                           updates the pinned touchmark image (GitLab, Gitea, Forgejo)
+bitbucket-pipelines.yml                 the same jobs on Bitbucket Pipelines
+renovate.json                           updates the pinned touchmark image (GitLab, Gitea, Forgejo, Bitbucket)
 scripts/validate.sh                     runs touchmark check and actionlint before you push
 LICENSE                                 MIT-0
 ```
@@ -96,6 +97,29 @@ For a hub on Gitea or Forgejo:
 3. **Check the runner label.** The workflows in `.gitea/workflows/` run on `ubuntu-latest`, the label of Gitea's default runners. If your runners are registered with other labels, change `runs-on`. Every job runs in the touchmark image and clones the hub with git, so it needs no actions from github.com or a mirror. The report is in the job's log, and on Gitea 1.27 with runner 2.0 in its summary.
 4. **Protect the hub** as above, and replace `@acme/hub-maintainers` in `.gitea/CODEOWNERS` with your team.
 5. **Describe your hub.** Set `id` and `writer` in `hub.yml`, then open a pull request and merge it. `distribute` runs on every merge to `main` or `master` (add your default branch under `push: branches:` if it has another name) and every day; `doctor` every Monday, from `.gitea/workflows/engineering-assets-doctor.yml`.
+
+### On Bitbucket Cloud
+
+> **Not verified on a live Bitbucket yet.** The Bitbucket support follows Atlassian's documentation and is tested against a stand-in of its API. `bitbucket-pipelines.yml` still names a touchmark that does not run a hub on Bitbucket (its pin is marked for the coming release): wait for the release that does. The points a first live run must confirm are in [A hub on Bitbucket Cloud](https://bedrock-python.github.io/touchmark/getting-started/bitbucket/).
+
+Bitbucket Pipelines gives a deployment environment's variables to every step that names the environment, in any branch's `bitbucket-pipelines.yml`. Only the environment's deployment permissions, a **Premium** feature, stop the steps of other branches, and Bitbucket's API does not show them, so touchmark cannot check them. Pick one:
+- **Premium:** keep `security.write_isolation: platform`, restrict the environment `touchmark-distribute` to the default branch, and say so in `security.reason`. Without that `reason`, touchmark refuses to run `distribute` on Bitbucket.
+- **Free or Standard:** set `security.write_isolation: none` with a `reason`. Every branch of the hub can then read the write key: let only maintainers push, and keep write access to the hub tight. Or run the hub's CI on GitHub or GitLab, and deliver to Bitbucket Cloud from there.
+
+`touchmark setup` has nothing for Bitbucket yet, so these steps are by hand:
+1. **Create the hub.** In your workspace choose *Create → Repository → Import repository*, give this repository's URL, `https://github.com/bedrock-python/engineering-assets-template.git`, and turn Pipelines on (*Repository settings → Pipelines → Settings*).
+2. **Create two bot accounts** with an API token each: a *reader* with read access to your target repositories and the scopes `read:user`, `read:workspace`, `read:repository` and `read:pullrequest`, and a *writer* with write access to the targets only (no admin, no access to the hub) and those scopes plus `write:repository` and `write:pullrequest` (all `…:bitbucket`).
+3. **Create the hub's access token** (*Repository settings → Security → Access tokens*) with *Repositories: Read* and *Pull requests: Write*. Pipelines gives a step no API token: touchmark reads the default branch with this one, and keeps `plan`'s comment with it.
+4. **Store the keys**, all Secured:
+   - repository variables `TOUCHMARK_READ_TOKEN` (the reader's token) and `TOUCHMARK_PIPELINES_TOKEN` (the hub's access token);
+   - create the deployment environment `touchmark-distribute` (*Repository settings → Deployments*) and store the writer's token as its variable `TOUCHMARK_WRITE_TOKEN`, and nowhere else. On Premium, allow deployments to it from the default branch only.
+
+   The `probe` step runs first in every pipeline, without the deployment, and stops the pipeline if it can see the write token: then every branch could.
+5. **Protect the hub.** Under *Branch restrictions*, let no one push to the default branch directly and only maintainers merge into it; keep the bot accounts and the access token out. Bitbucket reads none of the CODEOWNERS files: replace `@acme/hub-maintainers` in them, or delete them with the other platforms' CI files.
+6. **Schedule the runs.** Under *Pipelines → Schedules*, on the default branch: a daily schedule for the custom pipeline `distribute`, and a weekly one for `doctor`.
+7. **Describe your hub.** In `hub.yml` set `id`, `writer` to the writer account's UUID in quotes, like `"{3f2a8d4e-…}"`, and `security` as above. In `targets.yml` use `org: <workspace>` with `match`, or `repo: <workspace>/<repository>`: Bitbucket has no topics.
+8. **Open a pull request** and check the `probe`, `check` and `plan` steps. `plan` keeps its report in a comment; the report files are the step's artifacts.
+9. **Merge it.** The push pipeline runs `probe`, then `distribute`, which opens a pull request in every repository that has opted in. *Run pipeline* runs the custom pipelines `distribute` and `doctor`. The push pipeline starts on `main` and `master`: if your default branch has another name, add it to the `branches` pattern.
 
 ## Opt a repository in
 
@@ -189,24 +213,25 @@ GitHub reads pull request and issue templates, `CODE_OF_CONDUCT.md` and `SECURIT
 `scripts/validate.sh` runs what the CI runs, before you push:
 
 ```sh
-bash scripts/validate.sh             # touchmark check, then actionlint on .github and .gitea workflows
+bash scripts/validate.sh             # touchmark check, actionlint on .github and .gitea workflows, the Bitbucket image pin
 bash scripts/validate.sh --release   # also fail unless touchmark is pinned to a published release
 ```
 
-It checks a fresh copy of your working tree, committed or not, as a hub created from it would look. It needs `touchmark` on your `PATH`, or the command that runs it in `TOUCHMARK`, and `actionlint` or Docker. The GitLab CI file is checked by GitLab itself: use CI Lint in the project.
+It checks a fresh copy of your working tree, committed or not, as a hub created from it would look. It needs `touchmark` on your `PATH`, or the command that runs it in `TOUCHMARK`, and `actionlint` or Docker. The GitLab CI file is checked by GitLab itself: use CI Lint in the project; `bitbucket-pipelines.yml` by Bitbucket's editor. `--release` fails while `bitbucket-pipelines.yml` still waits for that release.
 
 ## Security
 
 A hub can open pull requests in every repository it targets, so treat it as the root of your supply chain:
 
 - A merge into the hub runs code in your targets' CI: a sync pull request runs the target's workflows with its secrets before anyone reviews it. Protect the default branch, require review, and keep CODEOWNERS on `packs/`, `hub.yml`, `targets.yml`, `.touchmark/` and the CI files.
-- Keep the write account on the default branch only: the `touchmark-distribute` environment on GitHub, a protected, environment-scoped variable on GitLab. The probe checks that no other job can see the key, and `distribute` refuses to run otherwise, unless `hub.yml` sets `security.write_isolation` to `external`, or to `none` with a reason. A private hub on GitHub Free can't pass: make the hub public, use the Team plan, or release the key from an external secret store through OIDC.
+- Keep the write account on the default branch only: the `touchmark-distribute` environment on GitHub, a protected, environment-scoped variable on GitLab, a deployment variable of `touchmark-distribute` restricted to the default branch on Bitbucket Premium. The probe checks that no other job can see the key, and `distribute` refuses to run otherwise, unless `hub.yml` sets `security.write_isolation` to `external`, or to `none` with a reason. A private hub on GitHub Free can't pass: make the hub public, use the Team plan, or release the key from an external secret store through OIDC.
 - The hub's maintainers hold the write account on every platform: they can change the variables, the environments and the workflows. Choose them accordingly.
 - One-off operations that override a safeguard live in `.touchmark/operations.yml` and go through review. The workflows take no inputs, and touchmark refuses those flags in CI.
 - The read account can read every target, and anyone who can push a branch to the hub can use it. Keep hub write access tight.
-- touchmark is pinned, and upgraded through review: the Action by commit, and the image by digest on GitLab, Gitea and Forgejo. The Action runs the image of its own release, by digest, and only after `gh attestation verify` has shown that touchmark's publish workflow built it. Dependabot's pull requests get no secrets, so their `plan` checks no target: it shows the hub's side, warns, and passes. Read the release notes, and run `plan` with the read key yourself before you merge. Renovate waits a week for other updates, but GHCR gives no release dates, so for the touchmark image it waits for your approval on its Dependency Dashboard instead.
+- touchmark is pinned, and upgraded through review: the Action by commit, and the image by digest on GitLab, Gitea, Forgejo and Bitbucket. The Action runs the image of its own release, by digest, and only after `gh attestation verify` has shown that touchmark's publish workflow built it. Dependabot's pull requests get no secrets, so their `plan` checks no target: it shows the hub's side, warns, and passes. Read the release notes, and run `plan` with the read key yourself before you merge. Renovate waits a week for other updates, but GHCR gives no release dates, so for the touchmark image it waits for your approval on its Dependency Dashboard instead.
 - Read the ⚠ section of every sync pull request. It lists changes to workflows, CI configuration, agent settings, skills and subagents, and CODEOWNERS.
 - In a public repository, GitHub disables scheduled workflows after 60 days without activity. Push to the hub or re-enable the workflow if the daily run stops. On GitLab, a schedule stops when its owner loses access: give it to an account that stays.
+- On Bitbucket, anyone with write access to the hub can run its custom pipelines and pass them variables, which override deployment variables. The template's scripts reference none, so the website asks for none; on Premium, deployment permissions also pause a run by someone not allowed to deploy.
 - A public hub skips private targets and prints only how many, because anyone can read its CI logs.
 
 touchmark never merges. It never overwrites or deletes a file a repository has changed.

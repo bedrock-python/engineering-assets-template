@@ -9,10 +9,14 @@
 #      hub's CODEOWNERS must not name the template's @acme/hub-maintainers.
 #   2. actionlint on the GitHub and the Gitea/Forgejo workflows. The GitLab CI
 #      file needs a GitLab instance to lint (CI Lint in the project, or
-#      `glab ci lint`).
-#   3. With --release: no `TODO(release)` pin is left, so the workflows name
-#      a real touchmark release.
-#   4. With --public: no file git tracks or would add points readers of a
+#      `glab ci lint`), and bitbucket-pipelines.yml Bitbucket (its editor's
+#      validator).
+#   3. bitbucket-pipelines.yml runs the touchmark image pinned by digest, the
+#      same one as .gitlab-ci.yml.
+#   4. With --release: no `TODO(release)` pin is left, so the workflows name
+#      a real touchmark release (bitbucket-pipelines.yml carries one until a
+#      release runs a hub on Bitbucket Pipelines).
+#   5. With --public: no file git tracks or would add points readers of a
 #      public repository at notes they cannot open: a design document by
 #      number (RFC-NNNN) or section sign, a milestone name such as M2 or
 #      M2.3, "the prototype", or text in Cyrillic, the language of those
@@ -160,7 +164,21 @@ if [ "${#workflows[@]}" -gt 0 ]; then
   fi
 fi
 
-# 3. Placeholder pins of a touchmark release that did not exist yet.
+# 3. The image of bitbucket-pipelines.yml: touchmark by digest, as on GitLab.
+image_of() { sed -E 's/^[[:space:]]*(image|name):[[:space:]]*//; s/[[:space:]]+#.*$//; s/[[:space:]]*$//; s/^"(.*)"$/\1/'; }
+if [ -f bitbucket-pipelines.yml ]; then
+  bb_image=$(grep -E '^image:' bitbucket-pipelines.yml | head -n 1 | image_of)
+  gl_image=$(grep -E '^[[:space:]]+name:[[:space:]]*"?ghcr\.io/bedrock-python/touchmark' .gitlab-ci.yml 2>/dev/null | head -n 1 | image_of || true)
+  if ! grep -qE '^ghcr\.io/bedrock-python/touchmark:[^@[:space:]]+@sha256:[0-9a-f]{64}$' <<<"$bb_image"; then
+    fail "bitbucket-pipelines.yml: the image is not touchmark pinned by digest: ${bb_image:-none}"
+  elif [ -n "$gl_image" ] && [ "$bb_image" != "$gl_image" ]; then
+    fail "bitbucket-pipelines.yml runs $bb_image, .gitlab-ci.yml $gl_image: pin one touchmark everywhere"
+  else
+    pass "bitbucket-pipelines.yml runs the pinned touchmark image"
+  fi
+fi
+
+# 4. Placeholder pins of a touchmark release that did not exist yet.
 pins=$(grep -rnE --exclude-dir=.git --exclude-dir=packs --exclude=validate.sh \
   "TODO\(release\)|touchmark@0{40}|touchmark:[^@[:space:]]*@sha256:0{64}" . || true)
 if [ -n "$pins" ]; then
@@ -174,7 +192,7 @@ elif $release; then
   pass "touchmark is pinned to a release everywhere"
 fi
 
-# 4. References to notes a public reader cannot open, with --public. grep
+# 5. References to notes a public reader cannot open, with --public. grep
 # compares bytes (LC_ALL=C), so that GNU and BSD grep agree: in UTF-8 the
 # section sign is C2 A7, and a Cyrillic letter is D0 to D3 followed by a
 # continuation byte. A milestone or the word stands alone, as with \b.

@@ -13,6 +13,7 @@ id: change-me
 # to another account. Commits are always authored by this account.
 #   GitHub: the writer App's bot, like acme-assets-write[bot]
 #   GitLab, Gitea, Forgejo: the writer's username, like touchmark-writer
+#   Bitbucket: the writer account's UUID, in quotes, like "{3f2a8d4e-…}"
 # writer: acme-assets-write[bot]
 
 # auto: sign commits where it costs nothing and where a target's rules require
@@ -20,8 +21,9 @@ id: change-me
 # sign: auto
 
 # With writer and sign at the top level, the hub delivers to the platform its
-# own CI runs on (the instance of GITHUB_SERVER_URL or CI_SERVER_URL; when you
-# run touchmark yourself, github.com or gitlab.com, from the hub's origin). For
+# own CI runs on (the instance of GITHUB_SERVER_URL or CI_SERVER_URL, or
+# Bitbucket Cloud under Bitbucket Pipelines; when you run touchmark yourself,
+# github.com, gitlab.com or bitbucket.org, from the hub's origin). For
 # a self-managed instance, or to deliver to several platforms, delete those
 # two lines and list the platforms instead. Each provider reads its keys from
 # TOUCHMARK_<ID>_READ_* and TOUCHMARK_<ID>_WRITE_* (the id uppercased, '-' as
@@ -47,6 +49,9 @@ id: change-me
 #     type: forgejo
 #     url: https://codeberg.org
 #     writer: acme-touchmark
+#   - id: bb
+#     type: bitbucket              # Bitbucket Cloud
+#     writer: "{3f2a8d4e-1b6c-4f0a-9e7d-5c2b1a0f9e8d}"
 
 security:
   # Where the write key lives:
@@ -57,6 +62,10 @@ security:
   #   none:     the risk is accepted; needs a reason. Gitea and Forgejo Actions
   #             cannot limit a secret to one branch, so a hub that runs its CI
   #             there needs external or none.
+  # On Bitbucket Pipelines, platform holds only on Premium, with the deployment
+  # touchmark-distribute limited to the default branch, which touchmark cannot
+  # read: say so in reason, like "Bitbucket Premium: only main may deploy to
+  # touchmark-distribute". Without Premium, use none with a reason.
   write_isolation: platform
   # reason: "Gitea Actions: every branch is protected, contributors work from forks"
   # A public hub skips targets that are not public and only counts them, since

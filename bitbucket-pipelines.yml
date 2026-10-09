@@ -1,0 +1,119 @@
+# The hub's CI on Bitbucket Pipelines (Bitbucket Cloud). touchmark checks
+# every pull request to the hub and delivers the packs from the default
+# branch:
+#
+#   pull request to the hub           probe, check, plan --strict --comment
+#   push to the default branch        probe, then distribute
+#   custom: distribute                probe, then distribute: Run pipeline, and
+#                                     a daily schedule on the default branch
+#   custom: doctor                    probe, then doctor: Run pipeline, and a
+#                                     weekly schedule on the default branch
+#
+# Bitbucket reads only this file; GitHub, GitLab, Gitea and Forgejo ignore
+# it, as Bitbucket ignores their CI files. Pull requests from forks run no
+# pipeline here (support.atlassian.com/bitbucket-cloud/docs/pipeline-start-conditions/).
+#
+# Variables (Repository settings > Pipelines; README, "On Bitbucket Cloud"):
+#   TOUCHMARK_READ_TOKEN       repository variable, secured: the reader's API token
+#   TOUCHMARK_PIPELINES_TOKEN  repository variable, secured: an access token of
+#                              this repository (Repositories: Read, Pull
+#                              requests: Write), for the default branch, the
+#                              head guard and plan's comment
+#   TOUCHMARK_WRITE_TOKEN      deployment variable of touchmark-distribute,
+#                              secured: the writer's API token, and nowhere else
+#
+# Only a step with `deployment: touchmark-distribute` gets that environment's
+# variables. Any branch's copy of this file could name it too, so the write
+# key stays on the default branch only when the environment's deployment
+# permissions (Premium) admit the default branch alone: touchmark cannot read
+# them, and hub.yml says so in security.reason. Without Premium, set
+# security.write_isolation to none with a reason (README, "On Bitbucket
+# Cloud"). The probe step runs without the deployment and fails when it sees
+# a write key: a repository or workspace variable would give it to every
+# branch.
+#
+# Schedules: create two under Pipelines > Schedules, on the default branch:
+# a daily one for the custom pipeline "distribute", a weekly one for
+# "doctor". The scripts reference no variable, so Run pipeline asks for none
+# (support.atlassian.com/bitbucket-cloud/docs/pipeline-triggers/).
+#
+# The image is pinned by digest on purpose: no variable names it, so none can
+# swap it. Renovate keeps the tag and digest current. Bitbucket runs the
+# scripts with the image's shell, not its touchmark entrypoint.
+#
+# The default branch: the push pipeline starts on main and master. If yours
+# has another name, add it to the branches pattern. touchmark reads the
+# default branch through the API and refuses distribute on any other.
+
+# TODO(release): pin the first touchmark release that runs a hub on Bitbucket
+# Pipelines; 0.3.0 does not.
+image: ghcr.io/bedrock-python/touchmark:0.3.0@sha256:d0b1b4f5ac763ad9bd4eee88e8b6b91680a2fe3318fefa1834e47cd27baab9ee
+
+clone:
+  depth: full                          # touchmark reads the hub's whole history
+
+definitions:
+  steps:
+    # Runs without the deployment, so it sees what any branch's pipeline
+    # could see.
+    - step: &probe
+        name: probe
+        max-time: 5
+        clone:
+          enabled: false               # the probe reads no files
+        script:
+          - touchmark probe
+    - step: &distribute
+        name: distribute
+        deployment: touchmark-distribute
+        # touchmark starts no target after 5h30m; the next run picks up
+        # what is left.
+        max-time: 360
+        script:
+          - touchmark distribute --hub . --deadline 5h30m
+        artifacts:
+          - touchmark-report.md
+          - touchmark-report.json
+          - touchmark-report.jsonl
+    - step: &doctor
+        name: doctor
+        deployment: touchmark-distribute
+        max-time: 60
+        script:
+          - touchmark doctor --hub .
+        artifacts:
+          - touchmark-doctor.md
+          - touchmark-doctor.json
+
+pipelines:
+  pull-requests:
+    "**":
+      - step: *probe
+      - step:
+          name: check
+          max-time: 30
+          script:
+            - touchmark check --hub .
+      - step:
+          name: plan
+          max-time: 60
+          script:
+            # plan reads the providers from the default branch's hub.yml,
+            # and the pull request's clone has only its own branch: fetch
+            # the branch it targets, the default branch as a rule.
+            - git fetch --no-tags origin "+refs/heads/$BITBUCKET_PR_DESTINATION_BRANCH:refs/remotes/origin/$BITBUCKET_PR_DESTINATION_BRANCH"
+            - touchmark plan --hub . --strict --comment
+          artifacts:
+            - touchmark-report.md
+            - touchmark-report.json
+  branches:
+    "{main,master}":
+      - step: *probe
+      - step: *distribute
+  custom:
+    distribute:
+      - step: *probe
+      - step: *distribute
+    doctor:
+      - step: *probe
+      - step: *doctor
