@@ -15,8 +15,8 @@
 #      azure-pipelines.yml runs) run the touchmark image pinned by digest,
 #      the same one as .gitlab-ci.yml.
 #   4. With --release: no `TODO(release)` pin is left, so the workflows name
-#      a real touchmark release (.azure-pipelines/touchmark.yml carries one
-#      until a release runs a hub on Azure Pipelines).
+#      a real touchmark release (a CI file for a new platform carries one
+#      until the release that runs a hub there).
 #   5. With --public: no file git tracks or would add points readers of a
 #      public repository at notes they cannot open: a design document by
 #      number (RFC-NNNN) or section sign, a milestone name such as M2 or
@@ -29,7 +29,7 @@
 #
 # Tools:
 #   TOUCHMARK   the command that runs touchmark (default: touchmark), for
-#               example "go run github.com/bedrock-python/touchmark/cmd/touchmark@v0.4.0"
+#               example "go run github.com/bedrock-python/touchmark/cmd/touchmark@v0.5.0"
 #   ACTIONLINT  the command that runs actionlint (default: actionlint, else
 #               its official image through docker)
 #

@@ -125,7 +125,7 @@ Bitbucket Pipelines gives a deployment environment's variables to every step tha
 
 ### On Azure DevOps
 
-> **Not verified on a live Azure DevOps yet.** The Azure Pipelines support follows Microsoft's documentation and is tested against a stand-in of its API. `.azure-pipelines/touchmark.yml` still names a touchmark that does not run a hub on Azure Pipelines (its pin is marked for the coming release): wait for the release that does. The points a first live run must confirm are in [A hub on Azure DevOps](https://bedrock-python.github.io/touchmark/getting-started/azure-devops/).
+> **Not verified on a live Azure DevOps yet.** The Azure Pipelines support follows Microsoft's documentation and is tested against a stand-in of its API. The points a first live run must confirm are in [A hub on Azure DevOps](https://bedrock-python.github.io/touchmark/getting-started/azure-devops/).
 
 The hub lives in Azure Repos of Azure DevOps Services, and `azure-pipelines.yml` runs touchmark with docker on Microsoft-hosted Ubuntu agents. Any branch's copy of that file could link the variable group that holds the write key: the group's **Branch control** check, admitting the default branch only, is what keeps every other branch out. touchmark cannot read that check from the job, so under `security.write_isolation: platform` it refuses to run `distribute` until `security.reason` states the check; `touchmark doctor --hub-token` then verifies it with a maintainer's token.
 
