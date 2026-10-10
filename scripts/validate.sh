@@ -29,7 +29,7 @@
 #
 # Tools:
 #   TOUCHMARK   the command that runs touchmark (default: touchmark), for
-#               example "go run github.com/bedrock-python/touchmark/cmd/touchmark@v0.5.0"
+#               example "go run github.com/bedrock-python/touchmark/cmd/touchmark@v0.6.0"
 #   ACTIONLINT  the command that runs actionlint (default: actionlint, else
 #               its official image through docker)
 #
