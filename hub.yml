@@ -114,7 +114,7 @@ security:
 # under formerly, so the files the old name shipped stay managed.
 packs:
   agents:
-    description: AGENTS.md for every coding agent, a project profile to fill in, review and refactoring prompts
+    description: AGENTS.md for every coding agent, a project profile to fill in, prompts to review a change, to plan a refactoring and to check that a change keeps behaviour
   claude:
     description: Claude Code instructions, skills (review-change, spec, new-branch, commit, pr), a reviewer subagent and settings that deny reading secrets
     requires: [agents]

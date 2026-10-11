@@ -189,7 +189,7 @@ A web URL names a repository or a namespace of the provider in `hub.yml` whose `
 
 | Pack | What a repository gets | Needs |
 |---|---|---|
-| `agents` | `AGENTS.md`, the instructions every coding agent reads; `.agents/project.md`, a project profile for the team to fill in; `.agents/prompts/review.md` and `.agents/prompts/refactor-check.md` | — |
+| `agents` | `AGENTS.md`, the instructions every coding agent reads; `.agents/project.md`, a project profile for the team to fill in; the prompts `.agents/prompts/review.md` (a review), `refactor-check.md` (before a refactoring) and `pure-refactor.md` (a check that a change keeps behaviour) | — |
 | `claude` | `CLAUDE.md`, which imports `AGENTS.md` and the profile; `.claude/settings.json`, which only denies reading secrets; the skills `/review-change`, `/spec`, `/new-branch`, `/commit` and `/pr`; the `reviewer` subagent | `agents` |
 | `python-service` | `.agents/guidelines/python.md`, `testing.md` and `database.md`; the skills `/app-start`, `/app-stop`, `/test` and `/fmt`; the `test-runner` subagent | `agents` |
 | `python-library` | `.agents/guidelines/python.md`, `testing.md` and `public-api.md` | `agents` |
@@ -197,7 +197,7 @@ A web URL names a repository or a namespace of the provider in `hub.yml` whose `
 
 How they fit together:
 - **Shared instructions, local facts.** The shared files never name a tracker, a branch pattern or a build command. They tell agents to read `.agents/project.md`, where each team writes those facts. The profile ships as a skeleton: once a team edits it, it belongs to the repository. Until then, `AGENTS.md` has agents find the facts in the repository (build files, CI, `CONTRIBUTING.md`, git), say where they found them and offer to fill the profile, so no repository depends on an empty file.
-- **One source for every agent.** Codex, Cursor, Copilot and Claude Code read `AGENTS.md`; `CLAUDE.md` imports it for Claude Code. The review checklist lives once in `.agents/prompts/review.md`, and the Claude skill and subagent follow it.
+- **One source for every agent.** Codex, Cursor, Copilot and Claude Code read `AGENTS.md`; `CLAUDE.md` imports it for Claude Code. The review checklist lives once in `.agents/prompts/review.md`, and the Claude skill and subagent follow it. The prompt splits a large change into slices, reviewed in parallel where the agent can run sub-agents and one after another where it cannot, then looks at the change as a whole.
 - **Skills with side effects wait to be asked.** `/new-branch`, `/commit`, `/pr`, `/spec`, `/app-start` and `/app-stop` run only when you invoke them. Skill names avoid Claude Code's built-in commands, such as `/review` and `/branch`.
 - **No hooks, no extra permissions.** `.claude/settings.json` holds deny rules only. `Read(!.env.example)` keeps `.env.example` readable: in a `deny` list, a rule that starts with `!` carves its paths out of the rules listed before it in the same file ([Claude Code's permission rules](https://code.claude.com/docs/en/permissions#read-and-edit)).
 - **Guidelines stay out of `docs/`.** Many projects publish `docs/` as their documentation site, and the guidelines are for the people and agents who change the code, not for its users: they live in `.agents/guidelines/`, next to the profile and the prompts.
