@@ -16,7 +16,7 @@ from pathlib import Path
 INDEX_PY = Path(__file__).resolve().parents[1] / "packs" / "knowledge" / ".agents" / "knowledge" / "index.py"
 # the developer's git config (signed commits, hooks, templates) stays out of the throwaway repositories
 ISOLATED = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
-TODAY = dt.date.today()
+TODAY = dt.datetime.now(dt.timezone.utc).date()
 
 
 class IndexTest(unittest.TestCase):

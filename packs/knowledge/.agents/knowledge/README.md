@@ -74,7 +74,7 @@ language for them, from [`TEMPLATE.md`](TEMPLATE.md):
 | --- | --- |
 | `summary` | one line; it becomes the entry's line in its group's `INDEX.md` |
 | `kind` | what the entry is, see below |
-| `verified` | `YYYY-MM-DD`: when it was last checked against reality |
+| `verified` | `YYYY-MM-DD` in UTC (`date -u +%F`): when it was last checked against reality |
 | `verify` | how to check it: a command, or a link when no command can |
 | `sources` | where it was learned: pull requests, issues, docs, people |
 
@@ -141,8 +141,8 @@ and from any of its worktrees.
    working on a topic, read the `INDEX.md` of its group and the entries the task needs; if the task
    touches work in progress (`kind: state`), read that entry first and keep it current.
 2. **Rely, then verify.** Before acting on an entry, run `index.py --stale <entry>`. Within its term,
-   rely on it; past it, check it the way `verify` says first. It holds - set `verified` to today. It
-   does not - fix the entry and add where the new knowledge came from.
+   rely on it; past it, check it the way `verify` says first. It holds - set `verified` to today in
+   UTC. It does not - fix the entry and add where the new knowledge came from.
 3. **Record** what passes the test above, above all what the user told: a correction ("we do it
    differently here"), where a resource is and what it is for, a decision and its why, the new state
    of the work in progress; what holds only for this user goes to `local.md`. Do not record what
