@@ -33,7 +33,10 @@ BOMS = ((codecs.BOM_UTF16_LE, "utf-16"), (codecs.BOM_UTF16_BE, "utf-16"), (codec
 # the diffs are read by this script, not a person: no colour, external diff or textconv a config may turn on
 PLAIN_DIFF = ("diff", "--no-color", "--no-ext-diff", "--no-textconv")
 HUNK_LINES = re.compile(rb"^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@")
-HOW = "run it in your agent (/review-change, $review-change; .agents/review/README.md) before opening or updating the pull request"
+HOW = (
+    "run it in your agent (/review-change, $review-change; .agents/review/README.md)"
+    " before opening or updating the pull request"
+)
 
 REVIEWED, BEHIND, SKIPPED = "reviewed", "behind", "skipped"
 
@@ -65,7 +68,7 @@ def main() -> int:
 
     try:
         status, message = check(refresh=args.refresh)
-    except Exception as error:  # noqa: BLE001 - the hook must never block a push, so a broken check only says so
+    except Exception as error:  # noqa: BLE001, RUF100 - the hook must never block a push, so a broken check only says so
         status, message = BEHIND, f"AI review: the check failed: {error!r}"
     if status == SKIPPED and not args.strict:
         return 0
