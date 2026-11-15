@@ -1,0 +1,4 @@
+# Python bytecode: running the scripts and the tests under packs/ and tests/ writes it, and
+# whatever is committed under packs/ is delivered to every target.
+__pycache__/
+*.pyc
