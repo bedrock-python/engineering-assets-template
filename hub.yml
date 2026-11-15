@@ -137,3 +137,6 @@ packs:
   knowledge:
     description: The repository's knowledge in .agents/knowledge - what agents learned and would otherwise ask again, in entries by group with indexes, a verification term and a check for secrets (index.py) - and the knowledge skill for every agent and Claude Code
     requires: [agents]
+  contributing:
+    description: CONTRIBUTING.md for people and agents - how we decide, code style, once and only once, documentation, git, pull requests and rules for AI assistants - with the project's conventions left to the profile; local/.gitignore
+    requires: [agents]
