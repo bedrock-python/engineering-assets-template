@@ -108,6 +108,7 @@ security:
 # the built-in list (workflows, CI files, agent settings, CODEOWNERS, ...).
 sensitive_paths:
   - .agents/review/check.py   # ai-review: a pre-push hook runs it on developers' machines
+  - .agents/knowledge/index.py   # knowledge: a pre-commit hook runs it on every commit
   # - deploy/**
 
 # What the packs under packs/ are for, and which packs each one needs: a target
@@ -132,4 +133,7 @@ packs:
     requires: [agents]
   workflow:
     description: Skills for every agent in .agents/skills - implement (a task from understanding it to the report), new-branch (with worktrees), commit (docs and rules checked first), pr (a short description about why, with the AI Review section) and spec (an interactive planning session) - and /implement for Claude Code
+    requires: [agents]
+  knowledge:
+    description: The repository's knowledge in .agents/knowledge - what agents learned and would otherwise ask again, in entries by group with indexes, a verification term and a check for secrets (index.py) - and the knowledge skill for every agent and Claude Code
     requires: [agents]
