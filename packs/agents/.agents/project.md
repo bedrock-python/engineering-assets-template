@@ -29,10 +29,12 @@ find these facts in the repository instead, and say where they found them.
 ## Conventions
 
 - Default branch:
-- Issue tracker, and how commits and pull requests refer to an issue (for example `#123` or `ACME-123`):
+- Issue tracker, the URL of an issue by its id, and how commits and pull requests refer to an issue (for example `#123` or `ACME-123`):
 - Branch names (for example `fix/123-short-description`):
 - Commit messages (for example Conventional Commits):
 - Language of pull request titles and descriptions:
+- Languages of the docs, of code comments and of notes for agents:
+- Where operational runbooks live:
 - Where specs and design notes go:
 
 ## Boundaries

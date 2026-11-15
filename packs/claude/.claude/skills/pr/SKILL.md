@@ -5,6 +5,8 @@ disable-model-invocation: true
 argument-hint: "[target branch, or notes for the description]"
 ---
 
+If the repository has `.agents/skills/implement/` (the `workflow` pack), follow `.agents/skills/pr/SKILL.md` with the request "$ARGUMENTS" instead of the steps below.
+
 Open a pull request for the current branch. $ARGUMENTS
 
 1. Read `.agents/project.md` for the default branch, the language of pull requests and how they refer to issues.

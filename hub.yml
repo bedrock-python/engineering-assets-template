@@ -130,3 +130,6 @@ packs:
   ai-review:
     description: An AI review by directions (correctness, security, performance, design, tests, compatibility) in fresh contexts, which the author runs before a pull request, with a record per branch, a pure-refactor check and a pre-push reminder
     requires: [agents]
+  workflow:
+    description: Skills for every agent in .agents/skills - implement (a task from understanding it to the report), new-branch (with worktrees), commit (docs and rules checked first), pr (a short description about why, with the AI Review section) and spec (an interactive planning session) - and /implement for Claude Code
+    requires: [agents]
