@@ -23,6 +23,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TextIO
@@ -227,7 +228,7 @@ def frontmatter_problems(fields: dict[str, str]) -> list[str]:
         return problems
     try:
         if dt.date.fromisoformat(verified) > today():
-            problems.append(f"`verified: {verified}` is in the future")
+            problems.append(f"`verified: {verified}` is later than today in UTC (`date -u +%F`)")
     except ValueError:
         problems.append(f"`verified: {verified}` is not a YYYY-MM-DD date")
     return problems
@@ -382,7 +383,8 @@ def say(message: str, stream: TextIO = sys.stderr) -> None:
 
 
 def today() -> dt.date:
-    return dt.date.today()
+    # not datetime.now(timezone.utc): ruff's UP017 asks for datetime.UTC there, which Python 3.10 lacks
+    return dt.date(*time.gmtime()[:3])
 
 
 if __name__ == "__main__":
