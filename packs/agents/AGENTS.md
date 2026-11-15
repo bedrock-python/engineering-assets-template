@@ -7,8 +7,9 @@ Instructions for AI coding agents working in this repository. People may find th
 1. Read `.agents/project.md`, the project profile. It has the commands to install, format, lint, test and run the project, the issue tracker, the branch and commit conventions, and the language of pull requests. Where it differs from this file, the profile wins: it is this repository's own.
 
    The profile may still be the hub's blank skeleton, or leave a fact out. Then find the fact in the repository: the commands in the build and dependency files (`Makefile`, `pyproject.toml`, `package.json`, `go.mod` and the like), the CI workflows, `CONTRIBUTING.md` and the README; the default branch and the commit style in git (`git symbolic-ref refs/remotes/origin/HEAD`, `git log`). Tell the user which facts you found and where, never invent a command you did not find, and offer to write them into the profile in a pull request of its own.
-2. Read the code you are about to change and the code that calls it. Do not guess what a function does from its name.
-3. If the task is unclear, or turns out bigger than it looked, stop and ask. Say what you understood and what you plan to do.
+2. If the repository has `CONTRIBUTING.md`, read it and follow it: the team's rules for code, git and pull requests, which go beyond "How to work" below.
+3. Read the code you are about to change and the code that calls it. Do not guess what a function does from its name.
+4. If the task is unclear, or turns out bigger than it looked, stop and ask. Say what you understood and what you plan to do.
 
 ## How to work
 
