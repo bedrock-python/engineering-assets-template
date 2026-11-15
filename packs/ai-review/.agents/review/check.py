@@ -226,7 +226,7 @@ def run(*args: str) -> bytes | None:
     executable = shutil.which("git")
     if not executable:
         return None
-    result = subprocess.run([executable, *args], capture_output=True, check=False)  # noqa: S603
+    result = subprocess.run([executable, *args], capture_output=True, check=False)  # noqa: S603, RUF100
     return result.stdout if result.returncode == 0 else None
 
 
