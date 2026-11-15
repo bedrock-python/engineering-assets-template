@@ -37,6 +37,10 @@ Instructions for AI coding agents working in this repository. People may find th
 
 This file and some others come from your organisation's engineering-assets hub, which updates them through pull requests. Keep facts about this project in `.agents/project.md`, which belongs to this repository. If a shared file does not suit this repository, change it here: it then becomes this repository's own and the hub stops updating it. To stop receiving a file altogether, list it under `ignore` in the opt-in file (`.engineering-assets.yml`).
 
+## Repository knowledge
+
+If the repository has `.agents/knowledge/`, it holds what agents learned here and would otherwise ask again: which services, resources and teams are for what, how to reach the environments, the team's decisions, work in progress, silent traps. Start from its `INDEX.md` and from your own gitignored `local.md`, whose path `python .agents/knowledge/index.py --local` prints (`python3` where `python` is not on the path); read, verify and record entries as its `README.md` says.
+
 ## Workflows
 
 If the repository has `.agents/skills/implement/` (the `workflow` pack), the skills in `.agents/skills/` are the workflows: a task in the code follows `implement` (from understanding it to the report), and `new-branch`, `commit`, `pr` and `spec` run when the user asks for them.
