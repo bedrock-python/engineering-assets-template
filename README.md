@@ -196,7 +196,7 @@ A web URL names a repository or a namespace of the provider in `hub.yml` whose `
 |---|---|---|
 | `agents` | `AGENTS.md`, the instructions every coding agent reads; `.agents/project.md`, a project profile for the team to fill in; the prompts `.agents/prompts/review.md` (a review), `refactor-check.md` (before a refactoring) and `pure-refactor.md` (a check that a change keeps behaviour) | — |
 | `claude` | `CLAUDE.md`, which imports `AGENTS.md` and the profile; `.claude/settings.json`, which only denies reading secrets; the skills `/review-change`, `/spec`, `/new-branch`, `/commit` and `/pr`; the `reviewer` subagent | `agents` |
-| `python-service` | `.agents/guidelines/python.md`, `testing.md` and `database.md`; the skills `/app-start`, `/app-stop`, `/test` and `/fmt`; the `test-runner` subagent | `agents` |
+| `python-service` | `.agents/guidelines/service.md` (layers, feature flags, configuration), `python.md`, `testing.md` and `database.md`; the skills `/app-start`, `/app-stop`, `/test` and `/fmt`; the `test-runner` subagent | `agents` |
 | `python-library` | `.agents/guidelines/python.md`, `testing.md` and `public-api.md` | `agents` |
 | `gitlab` | `.gitlab/merge_request_templates/Default.md`, `.gitlab/issue_templates/Bug.md` and `Feature.md` | — |
 

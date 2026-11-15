@@ -121,7 +121,7 @@ packs:
     description: Claude Code instructions, skills (review-change, spec, new-branch, commit, pr), a reviewer subagent and settings that deny reading secrets
     requires: [agents]
   python-service:
-    description: Python, testing and database guidelines for services; Claude Code skills (app-start, app-stop, test, fmt) and a test-runner subagent
+    description: Service, Python, testing and database guidelines for services; Claude Code skills (app-start, app-stop, test, fmt) and a test-runner subagent
     requires: [agents]
   python-library:
     description: Python, testing and public API guidelines for libraries
