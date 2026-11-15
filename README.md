@@ -23,6 +23,7 @@ packs/                                  the files you deliver, one directory per
   python-library/                       guidelines for Python libraries and their public API
   gitlab/                               merge request and issue templates
   ai-review/                            opt-in: an AI review by directions that the author runs before a pull request
+  workflow/                             opt-in: skills for every agent, from a branch to the pull request
 tests/                                  tests of the scripts the packs ship
 hub.yml                                 hub id, write account, security settings, pack descriptions and dependencies
 targets.yml                             which repositories to visit and which packs they get (empty)
@@ -214,11 +215,13 @@ The starter packs are a light standard any repository can take. The opt-in packs
 | Pack | What a repository gets | Needs |
 |---|---|---|
 | `ai-review` | `.agents/review/`: an AI review by six directions (correctness, security, performance, design and style, tests, compatibility), each in a fresh context on a model no weaker than the author's, then a meta-review that verifies, merges and ranks the findings; a pure-refactor check in the same way; a record per branch in `local/reviews/`, so that the next run reviews only what changed and the pull request's "AI Review" section is built from it; `check.py`, which says whether the review covers the branch's last commit, for a pre-push hook; the skill `.agents/skills/review-change/` for Codex, Cursor and OpenCode; `local/.gitignore` | `agents` |
+| `workflow` | Skills in `.agents/skills/` that Codex, Cursor and OpenCode read: `implement` takes a task from understanding it through the agreed shape, the change, the checks and the review to a report; `new-branch` names the branch by the profile's convention, in a worktree when agents work in parallel; `commit` checks the docs and the rules before the formatter and the message; `pr` writes a short description about why, with the AI Review section where the repository has `ai-review`, and opens it after the user's yes; `spec` plans a task interactively, the problem before the code, into `local/specs/` unless the profile names another place. `/implement` for Claude Code; `local/.gitignore` | `agents` |
 
-How `ai-review` fits with the starter packs:
+How the opt-in packs fit with the starter packs:
 - **The author reviews, people judge.** The author runs the review before the pull request, fixes what it finds or dismisses it with a reason, and the description says so; the people who review the pull request then look at what an AI cannot judge. `.agents/review/README.md` says how a team works with it, a bug the review missed included.
 - **It replaces the starter review where it is present.** `AGENTS.md`, `/review-change`, the `reviewer` subagent and `/pr` follow `.agents/review/` when a repository has it, and the starter prompts otherwise, so the pack overrides no file of another pack and works with or without `claude`.
 - **It edits on purpose.** The starter `/review-change` is read-only. With `ai-review` it writes the branch's record in `local/`, and the agent fixes the findings the user agrees with: the review is a step of the author's work, not a second opinion.
+- **The `claude` skills step aside.** `/new-branch`, `/commit`, `/pr` and `/spec` follow the skill of the same name in `.agents/skills/` when a repository has the `workflow` pack (`.agents/skills/implement/`), so every agent works the same way; without `workflow` they work as before. `ai-review` and `workflow` both ship `local/.gitignore`, with the same content.
 - **The hook is the repository's choice.** The pack ships `check.py` but no hook configuration: a repository wires the pre-push reminder into its own `.pre-commit-config.yaml` when it wants it. The reminder never blocks a push.
 - **Focus areas per repository.** A `## Review` section in `.agents/project.md` adds what this repository's review must check, one line per direction.
 
