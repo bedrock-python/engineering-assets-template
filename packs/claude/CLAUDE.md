@@ -8,5 +8,5 @@ The instructions for every coding agent are in AGENTS.md, and the facts about th
 ## Claude Code
 
 - Skills: `/review-change` for a review, `/review-change pure-refactor` to check that a change keeps behaviour; `/spec` before a larger change; `/new-branch`, `/commit` and `/pr`, which change the repository or the forge, run only when you invoke them.
-- The `reviewer` subagent reviews a change, or one slice of a large one, in a context of its own; `/review-change` runs one per slice in parallel.
+- The `reviewer` subagent reviews a change, or one slice of a large one, in a context of its own; `/review-change` runs one per slice in parallel. With `.agents/review/` (the `ai-review` pack), `/review-change` runs one per direction instead and keeps a review record, and `/pr` adds its "AI Review" section.
 - `.claude/settings.json` only denies access to secrets. Keep your own permissions in `.claude/settings.local.json`, which is not committed.

@@ -106,8 +106,9 @@ security:
 
 # Paths whose changes the pull request description highlights, in addition to
 # the built-in list (workflows, CI files, agent settings, CODEOWNERS, ...).
-# sensitive_paths:
-#   - deploy/**
+sensitive_paths:
+  - .agents/review/check.py   # ai-review: a pre-push hook runs it on developers' machines
+  # - deploy/**
 
 # What the packs under packs/ are for, and which packs each one needs: a target
 # that gets a pack gets its requires first. A renamed pack lists its old names
@@ -126,3 +127,6 @@ packs:
     requires: [agents]
   gitlab:
     description: GitLab merge request and issue templates
+  ai-review:
+    description: An AI review by directions (correctness, security, performance, design, tests, compatibility) in fresh contexts, which the author runs before a pull request, with a record per branch, a pure-refactor check and a pre-push reminder
+    requires: [agents]
