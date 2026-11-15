@@ -174,7 +174,7 @@ def git(*args: str) -> str | None:
     executable = shutil.which("git")
     if not executable:
         return None
-    result = subprocess.run([executable, *args], cwd=ROOT, capture_output=True, text=True, check=False)  # noqa: S603
+    result = subprocess.run([executable, *args], cwd=ROOT, capture_output=True, text=True, check=False)  # noqa: S603, RUF100
     return result.stdout.strip() if result.returncode == 0 else None
 
 
@@ -213,7 +213,7 @@ def placement_problems(entry: Entry) -> list[str]:
     parts = entry.parts
     if parts[0] == ARCHIVE:
         return [f"`{ARCHIVE}/` belongs inside a group"]
-    if len(parts) > 3 or (len(parts) == 3 and parts[1] != ARCHIVE):  # noqa: PLR2004
+    if parts[1:-1] not in ((), (ARCHIVE,)):
         return [f"too deep: a group is one directory, with only an optional `{ARCHIVE}/` inside"]
     return []
 
