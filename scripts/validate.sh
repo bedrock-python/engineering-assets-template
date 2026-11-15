@@ -17,7 +17,9 @@
 #   4. With --release: no `TODO(release)` pin is left, so the workflows name
 #      a real touchmark release (a CI file for a new platform carries one
 #      until the release that runs a hub there).
-#   5. With --public: no file git tracks or would add points readers of a
+#   5. The tests in tests/, of the scripts the packs ship, with python3 (or
+#      python) 3.9 or later when it is on the PATH; without it, a note.
+#   6. With --public: no file git tracks or would add points readers of a
 #      public repository at notes they cannot open: a design document by
 #      number (RFC-NNNN) or section sign, a milestone name such as M2 or
 #      M2.3, "the prototype", or text in Cyrillic, the language of those
@@ -216,7 +218,27 @@ elif $release; then
   pass "touchmark is pinned to a release everywhere"
 fi
 
-# 5. References to notes a public reader cannot open, with --public. grep
+# 5. The tests of the scripts the packs ship.
+if [ -d tests ]; then
+  # The first that runs: on Windows, python3 may be a stub that only opens the Store.
+  python=
+  for candidate in python3 python; do
+    if "$candidate" -c 'import sys; sys.exit(sys.version_info < (3, 9))' >/dev/null 2>&1; then
+      python=$candidate
+      break
+    fi
+  done
+  if [ -z "$python" ]; then
+    echo "note: no Python 3.9 or later found, the tests in tests/ did not run"
+  elif out=$(PYTHONDONTWRITEBYTECODE=1 "$python" -m unittest discover -s tests 2>&1); then
+    pass "the tests in tests/"
+  else
+    printf '%s\n' "$out" | tail -n 40 | sed 's/^/  /'
+    fail "the tests in tests/"
+  fi
+fi
+
+# 6. References to notes a public reader cannot open, with --public. grep
 # compares bytes (LC_ALL=C), so that GNU and BSD grep agree: in UTF-8 the
 # section sign is C2 A7, and a Cyrillic letter is D0 to D3 followed by a
 # continuation byte. A milestone or the word stands alone, as with \b.

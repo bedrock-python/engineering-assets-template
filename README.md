@@ -22,6 +22,8 @@ packs/                                  the files you deliver, one directory per
   python-service/                       guidelines for Python services; skills to run, test and format
   python-library/                       guidelines for Python libraries and their public API
   gitlab/                               merge request and issue templates
+  ai-review/                            opt-in: an AI review by directions that the author runs before a pull request
+tests/                                  tests of the scripts the packs ship
 hub.yml                                 hub id, write account, security settings, pack descriptions and dependencies
 targets.yml                             which repositories to visit and which packs they get (empty)
 .touchmark/operations.yml               one-off operations, reviewed like any other change (empty)
@@ -150,7 +152,7 @@ Nothing happens to a repository until it has `.engineering-assets.yml` at its ro
 
 ```yaml
 version: 1
-packs: [claude]                 # in addition to what the hub assigns
+packs: [claude, ai-review]      # in addition to what the hub assigns
 ignore:
   - .claude/settings.json       # we keep our own
   - .agents/guidelines/**
@@ -197,13 +199,28 @@ A web URL names a repository or a namespace of the provider in `hub.yml` whose `
 
 How they fit together:
 - **Shared instructions, local facts.** The shared files never name a tracker, a branch pattern or a build command. They tell agents to read `.agents/project.md`, where each team writes those facts. The profile ships as a skeleton: once a team edits it, it belongs to the repository. Until then, `AGENTS.md` has agents find the facts in the repository (build files, CI, `CONTRIBUTING.md`, git), say where they found them and offer to fill the profile, so no repository depends on an empty file.
-- **One source for every agent.** Codex, Cursor, Copilot and Claude Code read `AGENTS.md`; `CLAUDE.md` imports it for Claude Code. The review checklist lives once in `.agents/prompts/review.md`, and the Claude skill and subagent follow it. The prompt splits a large change into slices, reviewed in parallel where the agent can run sub-agents and one after another where it cannot, then looks at the change as a whole.
+- **One source for every agent.** Codex, Cursor, Copilot and Claude Code read `AGENTS.md`; `CLAUDE.md` imports it for Claude Code. The review checklist lives once in `.agents/prompts/review.md`, and the Claude skill and subagent follow it (the `ai-review` pack brings its own, see [Opt-in packs](#opt-in-packs)). The prompt splits a large change into slices, reviewed in parallel where the agent can run sub-agents and one after another where it cannot, then looks at the change as a whole.
 - **Skills with side effects wait to be asked.** `/new-branch`, `/commit`, `/pr`, `/spec`, `/app-start` and `/app-stop` run only when you invoke them. Skill names avoid Claude Code's built-in commands, such as `/review` and `/branch`.
 - **No hooks, no extra permissions.** `.claude/settings.json` holds deny rules only. `Read(!.env.example)` keeps `.env.example` readable: in a `deny` list, a rule that starts with `!` carves its paths out of the rules listed before it in the same file ([Claude Code's permission rules](https://code.claude.com/docs/en/permissions#read-and-edit)).
 - **Guidelines stay out of `docs/`.** Many projects publish `docs/` as their documentation site, and the guidelines are for the people and agents who change the code, not for its users: they live in `.agents/guidelines/`, next to the profile and the prompts.
 - `python-service` and `python-library` both ship `.agents/guidelines/python.md` and `testing.md`, with different content: give a repository one of them.
 
 GitHub reads pull request and issue templates, `CODE_OF_CONDUCT.md` and `SECURITY.md` from your organisation's `.github` repository when a repository has none, so there is no GitHub pack. Add one if those files must live in every repository.
+
+## Opt-in packs
+
+The starter packs are a light standard any repository can take. The opt-in packs add a stricter process on top of them, for the teams that want it: a repository asks for one in its `.engineering-assets.yml`, or the hub gives it in `targets.yml`.
+
+| Pack | What a repository gets | Needs |
+|---|---|---|
+| `ai-review` | `.agents/review/`: an AI review by six directions (correctness, security, performance, design and style, tests, compatibility), each in a fresh context on a model no weaker than the author's, then a meta-review that verifies, merges and ranks the findings; a pure-refactor check in the same way; a record per branch in `local/reviews/`, so that the next run reviews only what changed and the pull request's "AI Review" section is built from it; `check.py`, which says whether the review covers the branch's last commit, for a pre-push hook; the skill `.agents/skills/review-change/` for Codex, Cursor and OpenCode; `local/.gitignore` | `agents` |
+
+How `ai-review` fits with the starter packs:
+- **The author reviews, people judge.** The author runs the review before the pull request, fixes what it finds or dismisses it with a reason, and the description says so; the people who review the pull request then look at what an AI cannot judge. `.agents/review/README.md` says how a team works with it, a bug the review missed included.
+- **It replaces the starter review where it is present.** `AGENTS.md`, `/review-change`, the `reviewer` subagent and `/pr` follow `.agents/review/` when a repository has it, and the starter prompts otherwise, so the pack overrides no file of another pack and works with or without `claude`.
+- **It edits on purpose.** The starter `/review-change` is read-only. With `ai-review` it writes the branch's record in `local/`, and the agent fixes the findings the user agrees with: the review is a step of the author's work, not a second opinion.
+- **The hook is the repository's choice.** The pack ships `check.py` but no hook configuration: a repository wires the pre-push reminder into its own `.pre-commit-config.yaml` when it wants it. The reminder never blocks a push.
+- **Focus areas per repository.** A `## Review` section in `.agents/project.md` adds what this repository's review must check, one line per direction.
 
 ## Write packs
 
@@ -240,7 +257,7 @@ bash scripts/validate.sh             # touchmark check, actionlint on .github an
 bash scripts/validate.sh --release   # also fail unless touchmark is pinned to a published release
 ```
 
-It checks a fresh copy of your working tree, committed or not, as a hub created from it would look. It needs `touchmark` on your `PATH`, or the command that runs it in `TOUCHMARK`, and `actionlint` or Docker. The GitLab CI file is checked by GitLab itself: use CI Lint in the project; `bitbucket-pipelines.yml` by Bitbucket's editor. `--release` fails while `bitbucket-pipelines.yml` still waits for that release.
+It checks a fresh copy of your working tree, committed or not, as a hub created from it would look. It needs `touchmark` on your `PATH`, or the command that runs it in `TOUCHMARK`, and `actionlint` or Docker. The GitLab CI file is checked by GitLab itself: use CI Lint in the project; `bitbucket-pipelines.yml` by Bitbucket's editor. `--release` fails while `bitbucket-pipelines.yml` still waits for that release. It also runs the tests in `tests/`, of the scripts the packs ship, when Python 3.9 or later is on the `PATH`; the hub's CI does not run them.
 
 ## Security
 

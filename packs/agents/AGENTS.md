@@ -42,3 +42,5 @@ This file and some others come from your organisation's engineering-assets hub, 
 - Reviewing a change: follow `.agents/prompts/review.md`.
 - Before refactoring: answer `.agents/prompts/refactor-check.md`.
 - Checking that a change keeps behaviour, such as a refactoring: follow `.agents/prompts/pure-refactor.md`.
+
+If the repository has `.agents/review/`, a review and a check that a change keeps behaviour follow `.agents/review/README.md` instead: an AI review by directions that the author runs before a pull request. Run it yourself once the last change of a task is committed (where you do not commit on your own, ask the user to commit first), settle its findings with the user, and only then call the task done or open the pull request.
